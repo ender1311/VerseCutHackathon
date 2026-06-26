@@ -159,7 +159,7 @@ export function InputPanel({ studio }: { studio: Studio }) {
           </div>
         </div>
 
-        {studio.format === 'image' && (
+        {studio.format === 'image' ? (
           <div className="mb-4 flex items-center gap-3">
             <span className="text-[13px] font-semibold text-ink">File type</span>
             <div className="w-[180px]">
@@ -169,6 +169,21 @@ export function InputPanel({ studio }: { studio: Studio }) {
                 options={[
                   { value: 'png', label: 'PNG' },
                   { value: 'jpg', label: 'JPG' },
+                ]}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="mb-4 flex items-center gap-3">
+            <span className="text-[13px] font-semibold text-ink">Length</span>
+            <div className="w-[230px]">
+              <Segmented
+                value={String(studio.durationSec)}
+                onChange={(v) => studio.setDurationSec(Number(v))}
+                options={[
+                  { value: '6', label: '6s' },
+                  { value: '10', label: '10s' },
+                  { value: '15', label: '15s' },
                 ]}
               />
             </div>

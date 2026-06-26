@@ -51,6 +51,7 @@ export function useStudio() {
   const [format, setFormat] = useState<OutputFormat>(config.output.defaultFormat);
   const [aspect, setAspect] = useState<AspectRatio>(config.output.defaultAspect);
   const [imageFormat, setImageFormat] = useState<'png' | 'jpg'>('png');
+  const [durationSec, setDurationSec] = useState<number>(config.output.videoDurationSec);
   const [logoStyle, setLogoStyle] = useState<LogoStyle>(config.brand.defaultLogoStyle);
 
   // Generation
@@ -220,6 +221,7 @@ export function useStudio() {
           | 'image/jpeg',
         languageId,
         logoStyle,
+        durationSec,
       };
 
       let result: RenderedAsset;
@@ -265,6 +267,7 @@ export function useStudio() {
     libraryVideo,
     imageFormat,
     logoStyle,
+    durationSec,
     patchStage,
   ]);
 
@@ -305,6 +308,8 @@ export function useStudio() {
     setAspect,
     imageFormat,
     setImageFormat,
+    durationSec,
+    setDurationSec,
     logoStyle,
     setLogoStyle,
     // generation

@@ -26,6 +26,8 @@ export interface ComposeOptions {
   t?: number;
   /** Script-aware verse font (defaults to Latin/Fraunces, LTR). */
   verseFont?: VerseFontInfo;
+  /** Draw a light plate behind the logo (for dark-artwork "light" lockups). */
+  logoPlate?: boolean;
 }
 
 const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
@@ -246,6 +248,16 @@ export function composeFrame(
     const logoW = Math.round(logoSize * aspect);
     ctx.save();
     ctx.globalAlpha = reveal;
+    if (opts.logoPlate) {
+      // Light rounded plate so dark-artwork "light" lockups stay legible on the
+      // dark scrim.
+      const pad = Math.round(logoSize * 0.28);
+      const r = Math.round(logoSize * 0.22);
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.beginPath();
+      ctx.roundRect(margin - pad, logoBaselineY - pad, logoW + pad * 2, logoSize + pad * 2, r);
+      ctx.fill();
+    }
     ctx.drawImage(logo, margin, logoBaselineY, logoW, logoSize);
     ctx.restore();
   }

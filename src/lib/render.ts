@@ -19,6 +19,8 @@ export interface RenderInput {
   languageId?: string;
   /** Logo style for the corner mark. */
   logoStyle?: LogoStyle;
+  /** Video length in seconds (defaults to config). */
+  durationSec?: number;
 }
 
 /** Resolve the corner-logo path, optionally localized to the language + style. */
@@ -108,6 +110,7 @@ export async function renderImage(input: RenderInput): Promise<RenderedAsset> {
     background,
     logo,
     verseFont,
+    logoPlate: input.logoStyle === 'logo-light',
     t: 1,
   });
 
@@ -214,7 +217,7 @@ async function captureCanvas(
   const verseFont = await loadVerseFont(input.passage.text, input.languageId);
 
   const fps = config.output.videoFps;
-  const durationMs = config.output.videoDurationSec * 1000;
+  const durationMs = (input.durationSec ?? config.output.videoDurationSec) * 1000;
   const stream = canvas.captureStream(fps);
 
   // Mix in the background video's audio track when present.
@@ -257,6 +260,7 @@ async function captureCanvas(
         background,
         logo,
         verseFont,
+        logoPlate: input.logoStyle === 'logo-light',
         t,
       });
       onProgress(t);

@@ -4,6 +4,7 @@ import { config } from './config';
 import { InputPanel } from './components/InputPanel';
 import { OutputPanel } from './components/OutputPanel';
 import { useStudio } from './lib/useStudio';
+import { BIBLE_APP_ASSETS } from './lib/iconCatalog';
 
 const STATUS: Record<string, { label: string; dot: string }> = {
   idle: { label: 'Ready to generate', dot: 'bg-faint' },
@@ -16,12 +17,17 @@ export default function App({ userEmail }: { userEmail?: string | null }) {
   const studio = useStudio();
   const status = STATUS[studio.phase];
 
+  const langIcon = BIBLE_APP_ASSETS['icon-only'][studio.languageId];
+  const headerLogo = langIcon
+    ? `${config.brand.logoBaseDir}/icon-only/${langIcon}`
+    : config.brand.logoPath;
+
   return (
     <div className="flex h-screen flex-col bg-surface">
       {/* Header */}
       <header className="flex shrink-0 items-center justify-between border-b border-line px-7 py-3.5">
         <div className="flex items-center gap-3">
-          <img src={config.brand.logoPath} alt="" className="h-9 w-9 rounded-[11px]" />
+          <img src={headerLogo} alt="" className="h-9 w-9 rounded-[11px]" />
           <div className="leading-tight">
             <div className="text-[15px] font-extrabold tracking-tight text-ink">
               {config.brand.name}
