@@ -4,8 +4,8 @@
 // proxies (see vite.config.ts) so the browser avoids CORS and canvas tainting.
 // Mirrors alfred/video_api (client.py, stories.py).
 
-const STORIES = '/yvs/4.0';
-const VIDEOS = '/yvv/5.0';
+const STORIES = '/api/yvs/4.0';
+const VIDEOS = '/api/yvv/5.0';
 const CDN_HOST = 'https://yv-content-assets.youversionapi.com';
 
 export interface LibraryLesson {
@@ -109,10 +109,23 @@ export interface ManifestEntry {
   runtime: number | null;
 }
 
+/** Locally stored video pulled from an external source (e.g. YouTube via yt-dlp). */
+export interface ImportedVideoEntry {
+  id: string;
+  source: 'youtube';
+  sourceUrl: string;
+  title: string;
+  file: string;
+  language: string;
+  runtime: number;
+  references?: string[];
+}
+
 export interface VideoManifest {
   source: string;
   note?: string;
   dates: Record<string, ManifestEntry[]>;
+  imports?: ImportedVideoEntry[];
 }
 
 let manifestCache: VideoManifest | null = null;
@@ -155,4 +168,15 @@ export async function listVideosForDate(
   const all = manifest.dates[date] ?? [];
   const inLang = all.filter((e) => e.language === language);
   return inLang.length ? inLang : all;
+}
+
+/** List imported videos shipped under public/assets/videos/. */
+export async function listImportedVideos(): Promise<ImportedVideoEntry[]> {
+  const manifest = await loadManifest();
+  return manifest.imports ?? [];
+}
+
+/** Same-origin URL for a locally stored imported video file. */
+export function importedVideoUrl(entry: ImportedVideoEntry): string {
+  return `/assets/videos/${entry.file}`;
 }

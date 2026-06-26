@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { useStudio } from '../lib/useStudio';
-import { loadManifest, type ManifestEntry } from '../lib/videoLibrary';
+import { loadManifest, listImportedVideos, type ImportedVideoEntry, type ManifestEntry } from '../lib/videoLibrary';
 import { Check, Spinner, VideoIcon, XMark } from './icons';
 import { FieldLabel } from './ui';
 
@@ -11,6 +11,7 @@ export function VideoLibrary({ studio }: { studio: Studio }) {
   const [date, setDate] = useState('2026-06-26');
   const [dates, setDates] = useState<string[]>([]);
   const [results, setResults] = useState<ManifestEntry[] | null>(null);
+  const [imports, setImports] = useState<ImportedVideoEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,6 +22,9 @@ export function VideoLibrary({ studio }: { studio: Studio }) {
         setDates(ds);
         if (ds.length) setDate((d) => (ds.includes(d) ? d : ds[ds.length - 1]));
       })
+      .catch(() => {});
+    listImportedVideos()
+      .then(setImports)
       .catch(() => {});
   }, []);
 
@@ -52,7 +56,10 @@ export function VideoLibrary({ studio }: { studio: Studio }) {
               {selected.entry.title}
             </div>
             <div className="text-[12px] text-faint">
-              {selected.entry.references.join(', ')} · {selected.entry.language.toUpperCase()}
+              {'references' in selected.entry && selected.entry.references?.length
+                ? `${selected.entry.references.join(', ')} · `
+                : ''}
+              {selected.entry.language.toUpperCase()}
             </div>
           </div>
           <button
@@ -157,6 +164,37 @@ export function VideoLibrary({ studio }: { studio: Studio }) {
                   )}
                 </button>
               ))}
+            </div>
+          )}
+
+          {imports.length > 0 && (
+            <div className="mt-4 border-t border-line-soft pt-3">
+              <div className="mb-2 text-[12px] font-medium text-muted">Imported videos</div>
+              <div className="scroll-slim max-h-40 space-y-1 overflow-y-auto">
+                {imports.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    disabled={studio.libraryBusy}
+                    onClick={() => studio.selectImportedVideo(v)}
+                    className="flex w-full items-center gap-2 rounded-lg border border-line-soft p-2 text-left transition hover:border-line hover:bg-line-soft/50 disabled:opacity-50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px] font-semibold text-ink">{v.title}</div>
+                      <div className="text-[11px] text-faint">
+                        YouTube · {v.language.toUpperCase()} · {v.runtime}s
+                      </div>
+                    </div>
+                    {studio.libraryBusy ? (
+                      <Spinner className="text-muted" />
+                    ) : (
+                      <span className="text-faint">
+                        <Check />
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

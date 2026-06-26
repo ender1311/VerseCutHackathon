@@ -39,15 +39,16 @@ versions). Implemented in
 1. Get an app key at <https://platform.youversion.com>.
 2. Copy `.env.example` → `.env` and set:
    ```
-   VITE_BIBLE_PROVIDER=youversion
+   NEXT_PUBLIC_BIBLE_PROVIDER=youversion
    YV_PLATFORM_API_KEY=your_key
    ```
 
-**The key stays server-side.** The browser calls a same-origin path (`/yvp/v1/…`)
-and the Vite dev proxy injects the `x-yvp-app-key` header — see
-[`vite.config.ts`](vite.config.ts). For production, deploy the same proxy as a
-serverless function (e.g. a Vercel rewrite/function) that injects the key, so it
-never ships in the client bundle. Set `VITE_YV_BASE_URL` to that proxy's URL.
+**The key stays server-side.** The browser calls a same-origin path (`/api/yvp/v1/…`)
+handled by the Next route at
+[`src/app/api/yvp/[...path]/route.ts`](src/app/api/yvp/%5B...path%5D/route.ts),
+which injects the `x-yvp-app-key` header from `YV_PLATFORM_API_KEY` — so the key
+never ships in the client bundle. On Vercel, set `YV_PLATFORM_API_KEY` as an
+environment variable.
 
 Endpoints used: `GET /v1/languages`, `GET /v1/bibles`, `GET /v1/bibles/{id}`
 (book USFM list), `GET /v1/bibles/{id}/passages/{usfm}?format=text`. References
@@ -56,8 +57,8 @@ are USFM; same-chapter ranges encode as `BOOK.CH.from-to`. Mirrors the alfred
 
 #### API.Bible
 
-Get a key at <https://scripture.api.bible>, then set `VITE_BIBLE_PROVIDER=api.bible`
-and `VITE_BIBLE_API_KEY=your_key`.
+Get a key at <https://scripture.api.bible>, then set `NEXT_PUBLIC_BIBLE_PROVIDER=api.bible`
+and `NEXT_PUBLIC_BIBLE_API_KEY=your_key`.
 
 #### Swapping in your own
 
@@ -72,20 +73,14 @@ The integration is **swappable**: implement the `BibleProvider` interface in
   image/video, or a generated brand gradient when none is provided) → contrast
   scrim → auto-sized verse text → reference/version → logo.
 - **Static image** → canvas → `toBlob()` → PNG/JPG.
-- **Video** → the animated canvas is captured with `MediaRecorder` (WebM), then
-  transcoded to **MP4 (H.264)** in-browser via **ffmpeg.wasm**.
+- **Video** → the animated canvas is recorded with `MediaRecorder`. The
+  background video's audio is mixed in via Web Audio, and the output is **MP4
+  (H.264 + AAC)** directly where the browser supports it (Chrome/Safari), with a
+  WebM→MP4 **ffmpeg.wasm** fallback for browsers that don't (e.g. Firefox).
 
-### Note on browser video rendering
-
-In-browser MP4 encoding requires cross-origin isolation (the dev server sets the
-`COOP`/`COEP` headers in [`vite.config.ts`](vite.config.ts)). If ffmpeg.wasm can't
-load in a given session, the app gracefully falls back to delivering the WebM.
-
-For production-scale or guaranteed MP4 + audio output, move the video render to a
-**backend step** (e.g. a serverless function running ffmpeg): the client would
-POST the verse text, options, and uploaded background, and receive a rendered MP4
-URL. The compositor logic ports directly to a server-side canvas (`node-canvas`)
-or an ffmpeg `drawtext`/overlay filter graph.
+For production-scale or guaranteed MP4 output you can move the render to a
+backend step (serverless ffmpeg); the compositor logic ports to a server-side
+canvas or an ffmpeg filter graph.
 
 ## Video library (YouVersion Guided Scripture)
 
@@ -93,14 +88,15 @@ Users can pull **Guided Scripture videos by date** and use them as ad
 backgrounds, in addition to uploading their own. Flow (mirrors
 `~/repos/alfred/video_api`):
 
-- **Stories 4.0** (`/yvs` proxy) maps a date → lessons, each with a `video_id`.
-- **Videos 5.0** (`/yvv` proxy) resolves a `video_id` → playback sources
+- **Stories 4.0** (`/api/yvs` route) maps a date → lessons, each with a `video_id`.
+- **Videos 5.0** (`/api/yvv` route) resolves a `video_id` → playback sources
   (webm / hls / mp3 + preview mp4).
-- **Media** streams through the `/yvmedia` proxy so the cross-origin CDN video
-  can be drawn onto the canvas without tainting it.
+- **Media** streams through the `/yvmedia` rewrite (see `next.config.ts`) so the
+  cross-origin CDN video can be drawn onto the canvas without tainting it.
 
-All three are same-origin Vite proxies (see [`vite.config.ts`](vite.config.ts));
-Stories requires `Accept-Encoding: gzip`, injected by the proxy.
+The `/api/yv*` routes are Next.js route handlers that inject the required YV
+client headers server-side; `/yvmedia` is a `next.config.ts` rewrite. Node's
+fetch advertises gzip automatically, which Stories 4.0 requires.
 
 `public/assets/videos/manifest.json` is the **seeded catalog** ("database") —
 60 videos across 12 dates, built from the alfred pulls — so the library is
@@ -139,4 +135,7 @@ To re-pull/refresh from Figma, set `FIGMA_TOKEN` in `.env`.
 
 ## Tech
 
-React + TypeScript + Vite + Tailwind v4. Canvas compositing, ffmpeg.wasm for video.
+Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4, deployed on Vercel.
+Client-side Canvas compositing + MediaRecorder, ffmpeg.wasm fallback. API routes
+under `src/app/api` proxy the YouVersion APIs (key injected server-side).
+Auth (WorkOS AuthKit) and the asset database are the next phase.

@@ -4,14 +4,16 @@ import { getBibleProvider, type BibleVersion, type Book, type Language } from '.
 import { renderImage, renderVideo, type RenderedAsset } from './render';
 import type { LogoStyle } from './iconCatalog';
 import {
+  importedVideoUrl,
   listVideosForDate,
   pickBackgroundUrl,
   resolvePlayback,
+  type ImportedVideoEntry,
   type ManifestEntry,
 } from './videoLibrary';
 
 export interface SelectedLibraryVideo {
-  entry: ManifestEntry;
+  entry: ManifestEntry | ImportedVideoEntry;
   url: string;
 }
 
@@ -153,6 +155,18 @@ export function useStudio() {
     }
   }, []);
 
+  /** Pick a locally stored imported video (e.g. YouTube pull). */
+  const selectImportedVideo = useCallback(async (entry: ImportedVideoEntry) => {
+    setLibraryBusy(true);
+    try {
+      setImageFileState(null);
+      setVideoFileState(null);
+      setLibraryVideo({ entry, url: importedVideoUrl(entry) });
+    } finally {
+      setLibraryBusy(false);
+    }
+  }, []);
+
   const clearLibraryVideo = useCallback(() => setLibraryVideo(null), []);
 
   const canGenerate =
@@ -279,6 +293,7 @@ export function useStudio() {
     libraryBusy,
     browseVideos,
     selectLibraryVideo,
+    selectImportedVideo,
     clearLibraryVideo,
     format,
     setFormat,

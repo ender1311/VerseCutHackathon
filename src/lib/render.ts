@@ -134,15 +134,65 @@ export async function renderImage(input: RenderInput): Promise<RenderedAsset> {
  * we can deliver MP4 with zero transcode; fall back to WebM otherwise.
  */
 function pickRecordingMime(): { mime: string; ext: string } {
-  const mp4 = ['video/mp4;codecs=avc1.42E01E', 'video/mp4'];
+  // Prefer containers/codecs that carry an audio track too.
+  const mp4 = [
+    'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+    'video/mp4;codecs=avc1.42E01E',
+    'video/mp4',
+  ];
   for (const m of mp4) {
     if (MediaRecorder.isTypeSupported(m)) return { mime: m, ext: 'mp4' };
   }
-  const webm = ['video/webm;codecs=vp8', 'video/webm;codecs=vp9', 'video/webm'];
+  const webm = [
+    'video/webm;codecs="vp8,opus"',
+    'video/webm;codecs="vp9,opus"',
+    'video/webm;codecs=vp8',
+    'video/webm',
+  ];
   for (const m of webm) {
     if (MediaRecorder.isTypeSupported(m)) return { mime: m, ext: 'webm' };
   }
   return { mime: 'video/webm', ext: 'webm' };
+}
+
+/**
+ * Tap a video element's audio into a capturable MediaStream track via Web Audio.
+ * Routes only to the stream destination (no speakers). Returns null if the
+ * background has no audio or the graph can't be built.
+ */
+function tapVideoAudio(
+  video: HTMLVideoElement,
+): { track: MediaStreamTrack; cleanup: () => void } | null {
+  try {
+    const AC: typeof AudioContext =
+      window.AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return null;
+    video.muted = false;
+    video.volume = 1;
+    const ctx = new AC();
+    if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
+    const source = ctx.createMediaElementSource(video);
+    const dest = ctx.createMediaStreamDestination();
+    source.connect(dest); // capture only — intentionally not connected to ctx.destination
+    const track = dest.stream.getAudioTracks()[0];
+    if (!track) {
+      ctx.close();
+      return null;
+    }
+    return {
+      track,
+      cleanup: () => {
+        try {
+          source.disconnect();
+          ctx.close();
+        } catch {
+          /* noop */
+        }
+      },
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Record the animated canvas to a Blob via MediaRecorder. */
@@ -159,17 +209,26 @@ async function captureCanvas(
   canvas.height = height;
   const ctx = canvas.getContext('2d')!;
 
-  if (background.type === 'video') {
-    background.video.currentTime = 0;
-    await background.video.play().catch(() => {});
-  }
-
   const fps = config.output.videoFps;
   const durationMs = config.output.videoDurationSec * 1000;
   const stream = canvas.captureStream(fps);
+
+  // Mix in the background video's audio track when present.
+  let audioCleanup: (() => void) | null = null;
+  if (background.type === 'video') {
+    background.video.currentTime = 0;
+    const audio = tapVideoAudio(background.video);
+    if (audio) {
+      stream.addTrack(audio.track);
+      audioCleanup = audio.cleanup;
+    }
+    await background.video.play().catch(() => {});
+  }
+
   const recorder = new MediaRecorder(stream, {
     mimeType,
     videoBitsPerSecond: 10_000_000,
+    audioBitsPerSecond: 128_000,
   });
   const chunks: BlobPart[] = [];
   recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
@@ -207,7 +266,9 @@ async function captureCanvas(
 
   recorder.stop();
   if (background.type === 'video') background.video.pause();
-  return done;
+  const blob = await done;
+  audioCleanup?.();
+  return blob;
 }
 
 let ffmpegSingleton: FFmpeg | null = null;

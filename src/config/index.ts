@@ -33,29 +33,29 @@ export const config = {
      *  - 'youversion' — YouVersion Platform API (api.youversion.com), via proxy.
      *  - 'api.bible'  — scripture.api.bible.
      */
-    provider: (import.meta.env.VITE_BIBLE_PROVIDER ?? 'mock') as
+    provider: (process.env.NEXT_PUBLIC_BIBLE_PROVIDER ?? 'youversion') as
       | 'mock'
       | 'youversion'
       | 'api.bible',
 
     /** API key (API.Bible, or YouVersion when calling directly w/o a proxy). */
-    apiKey: import.meta.env.VITE_BIBLE_API_KEY ?? '',
+    apiKey: process.env.NEXT_PUBLIC_BIBLE_API_KEY ?? '',
 
     apiBaseUrl: 'https://api.scripture.api.bible/v1',
 
-    /** YouVersion Platform settings. Key is injected by a same-origin proxy. */
+    /** YouVersion Platform settings. Key is injected by a same-origin route handler. */
     youversion: {
-      /** Relative base hits the dev/prod proxy (keeps the app key server-side). */
-      baseUrl: import.meta.env.VITE_YV_BASE_URL ?? '/yvp',
+      /** Relative base hits the /api proxy (keeps the app key server-side). */
+      baseUrl: process.env.NEXT_PUBLIC_YV_BASE_URL ?? '/api/yvp',
       /** Only true when bypassing the proxy and calling the API directly. */
-      sendKeyFromClient: import.meta.env.VITE_YV_SEND_KEY === 'true',
+      sendKeyFromClient: process.env.NEXT_PUBLIC_YV_SEND_KEY === 'true',
     },
 
     /**
      * Default version id when the user doesn't choose one.
      * YouVersion: 111=NIV, 3034=BSB, 1=KJV. API.Bible uses its own ids.
      */
-    defaultVersionId: import.meta.env.VITE_BIBLE_DEFAULT_VERSION ?? '111',
+    defaultVersionId: process.env.NEXT_PUBLIC_BIBLE_DEFAULT_VERSION ?? '111',
   },
 
   /** Output presets. */
