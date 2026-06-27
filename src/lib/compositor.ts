@@ -323,11 +323,12 @@ function composePromo(ctx: CanvasRenderingContext2D, opts: ComposeOptions) {
     ctx,
     `“${opts.verseText}”`,
     maxW,
-    h * 0.42,
+    h * 0.4,
     startSize,
     vf.family,
   );
-  let y = Math.round(h * 0.2) + size;
+  const verseTopBaseline = Math.round(h * 0.16) + size;
+  let y = verseTopBaseline;
   ctx.save();
   ctx.globalAlpha = reveal;
   ctx.translate(0, (1 - reveal) * 18);
@@ -341,18 +342,21 @@ function composePromo(ctx: CanvasRenderingContext2D, opts: ComposeOptions) {
     y += lineHeight;
   }
   ctx.restore();
+  const verseBottom = y - lineHeight; // baseline of the final verse line
 
-  // 3. Reference — centered, muted
+  // 3. Reference — centered, muted, flowed just below the verse so longer
+  //    passages (or shorter canvases like 16:9) never collide with the verse.
   const label = opts.versionAbbreviation
     ? `${opts.reference}   ${opts.versionAbbreviation}`
     : opts.reference;
+  const refY = Math.max(Math.round(h * 0.58), Math.round(verseBottom + lineHeight * 0.95));
   ctx.save();
   ctx.globalAlpha = detail;
   ctx.direction = rtl ? 'rtl' : 'ltr';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#5b6b68';
   ctx.font = `600 ${Math.round(w * 0.038)}px '${uiFamily}', system-ui, sans-serif`;
-  ctx.fillText(label, w / 2, Math.round(h * 0.6));
+  ctx.fillText(label, w / 2, refY);
   ctx.restore();
 
   // 4. CTA — centered, bold dark
