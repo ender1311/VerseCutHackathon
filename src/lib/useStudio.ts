@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { defaultCta } from './cta';
 import { ASPECT_DIMENSIONS, config, type AspectRatio, type OutputFormat } from '../config';
 import { getBibleProvider, type BibleVersion, type Book, type Language } from './bible';
 import { renderImage, renderVideo, type RenderedAsset } from './render';
@@ -56,6 +57,13 @@ export function useStudio() {
   const [imageFormat, setImageFormat] = useState<'png' | 'jpg'>('png');
   const [durationSec, setDurationSec] = useState<number>(config.output.videoDurationSec);
   const [logoStyle, setLogoStyle] = useState<LogoStyle>(config.brand.defaultLogoStyle);
+  const [template, setTemplate] = useState<'classic' | 'promo'>('classic');
+  const [cta, setCtaState] = useState<string>(defaultCta('en'));
+  const ctaTouched = useRef(false);
+  const setCta = useCallback((v: string) => {
+    ctaTouched.current = true;
+    setCtaState(v);
+  }, []);
 
   // Generation
   const [phase, setPhase] = useState<Phase>('idle');
@@ -114,6 +122,11 @@ export function useStudio() {
   const languageCode = languageId.includes(':')
     ? languageId.slice(languageId.indexOf(':') + 1)
     : languageId;
+
+  // Seed the CTA with the language's localized default until the user edits it.
+  useEffect(() => {
+    if (!ctaTouched.current) setCtaState(defaultCta(languageCode));
+  }, [languageCode]);
 
   const currentBook = books.find((b) => b.id === bookId);
   const maxChapter = currentBook?.chapters ?? 150;
@@ -258,6 +271,8 @@ export function useStudio() {
           | 'image/jpeg',
         languageId: languageCode,
         logoStyle,
+        template,
+        cta,
         durationSec,
       };
 
@@ -305,6 +320,8 @@ export function useStudio() {
     sharedBg,
     imageFormat,
     logoStyle,
+    template,
+    cta,
     durationSec,
     patchStage,
   ]);
@@ -355,6 +372,10 @@ export function useStudio() {
     setDurationSec,
     logoStyle,
     setLogoStyle,
+    template,
+    setTemplate,
+    cta,
+    setCta,
     // generation
     phase,
     stages,

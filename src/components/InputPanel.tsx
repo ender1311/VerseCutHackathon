@@ -68,6 +68,31 @@ export function InputPanel({ studio }: { studio: Studio }) {
         <SectionHeader label="Optional" tone="optional" />
 
         <div className="mb-6">
+          <FieldLabel hint="Layout">Template</FieldLabel>
+          <Segmented
+            value={studio.template}
+            onChange={studio.setTemplate}
+            options={[
+              { value: 'classic', label: 'Classic' },
+              { value: 'promo', label: 'App promo' },
+            ]}
+          />
+        </div>
+
+        {studio.template === 'promo' && (
+          <div className="mb-6">
+            <FieldLabel hint="Shown above the logo">Call to action</FieldLabel>
+            <input
+              type="text"
+              value={studio.cta}
+              onChange={(e) => studio.setCta(e.target.value)}
+              placeholder="Download the Bible App!"
+              className="h-[52px] w-full rounded-xl border border-line bg-surface px-4 text-[15px] font-medium text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+            />
+          </div>
+        )}
+
+        <div className="mb-6">
           <FieldLabel hint={`${studio.versions.length} available`}>Bible version</FieldLabel>
           <Select
             value={studio.versionId}
@@ -80,18 +105,20 @@ export function InputPanel({ studio }: { studio: Studio }) {
           />
         </div>
 
-        <div className="mb-6">
-          <FieldLabel hint="Bottom-left mark">Logo</FieldLabel>
-          <Select
-            value={studio.logoStyle}
-            onChange={studio.setLogoStyle}
-            options={[
-              { value: 'icon-only', label: 'App icon' },
-              { value: 'logo-light', label: 'Logo lockup — light' },
-              { value: 'logo-dark', label: 'Logo lockup — dark' },
-            ]}
-          />
-        </div>
+        {studio.template === 'classic' && (
+          <div className="mb-6">
+            <FieldLabel hint="Bottom-left mark">Logo</FieldLabel>
+            <Select
+              value={studio.logoStyle}
+              onChange={studio.setLogoStyle}
+              options={[
+                { value: 'icon-only', label: 'App icon' },
+                { value: 'logo-light', label: 'Logo lockup — light' },
+                { value: 'logo-dark', label: 'Logo lockup — dark' },
+              ]}
+            />
+          </div>
+        )}
 
         <div className="mb-6">
           <UploadField

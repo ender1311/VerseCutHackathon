@@ -28,6 +28,10 @@ export interface ComposeOptions {
   verseFont?: VerseFontInfo;
   /** Draw a light plate behind the logo (for dark-artwork "light" lockups). */
   logoPlate?: boolean;
+  /** Layout template. 'classic' = dark scrim + corner logo; 'promo' = light, centered lockup + CTA. */
+  template?: 'classic' | 'promo';
+  /** Call-to-action line (promo template), e.g. "Download the Bible App!". */
+  cta?: string;
 }
 
 const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
@@ -138,6 +142,11 @@ export function composeFrame(
   ctx: CanvasRenderingContext2D,
   opts: ComposeOptions,
 ) {
+  if (opts.template === 'promo') {
+    composePromo(ctx, opts);
+    return;
+  }
+
   const { width: w, height: h, background, logo } = opts;
   const t = opts.t ?? 1;
   const reveal = easeOut(Math.min(1, t / 0.5)); // text fully in by t=0.5
@@ -259,6 +268,114 @@ export function composeFrame(
       ctx.fill();
     }
     ctx.drawImage(logo, margin, logoBaselineY, logoW, logoSize);
+    ctx.restore();
+  }
+}
+
+function drawLightGradient(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#eef4fb');
+  g.addColorStop(0.5, '#dfeaf5');
+  g.addColorStop(1, '#cfe0ef');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+}
+
+/**
+ * App-promo template: light photographic/gradient background, dark teal serif
+ * verse (upper, left-aligned), centered reference, a CTA line, and the Bible App
+ * lockup centered at the bottom. Mirrors the reference promo video.
+ */
+function composePromo(ctx: CanvasRenderingContext2D, opts: ComposeOptions) {
+  const { width: w, height: h, background, logo } = opts;
+  const t = opts.t ?? 1;
+  const vf = opts.verseFont ?? { family: 'Fraunces', rtl: false, script: 'latin' };
+  const reveal = easeOut(Math.min(1, t / 0.45));
+  const detail = easeOut(Math.min(1, Math.max(0, (t - 0.3) / 0.5)));
+  const casedScript =
+    vf.script === 'latin' || vf.script === 'cyrillic' || vf.script === 'greek';
+  const uiFamily = casedScript ? 'Plus Jakarta Sans' : vf.family;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // 1. Light background
+  if (background.type === 'gradient') {
+    drawLightGradient(ctx, w, h);
+  } else if (background.type === 'image') {
+    const img = background.image as HTMLImageElement;
+    drawCover(ctx, img, img.naturalWidth, img.naturalHeight, w, h, 1.04 + 0.05 * t);
+  } else {
+    const v = background.video;
+    drawCover(ctx, v, v.videoWidth, v.videoHeight, w, h, 1.02 + 0.04 * t);
+  }
+  // Soft white veil so dark text stays legible over any background.
+  ctx.fillStyle = 'rgba(255,255,255,0.32)';
+  ctx.fillRect(0, 0, w, h);
+
+  const margin = Math.round(w * 0.085);
+  const maxW = w - margin * 2;
+  const rtl = vf.rtl;
+  const anchorX = rtl ? w - margin : margin;
+
+  // 2. Verse — dark teal serif, upper area
+  const startSize = Math.round(w * 0.066);
+  const { lines, size, lineHeight } = fitVerse(
+    ctx,
+    `“${opts.verseText}”`,
+    maxW,
+    h * 0.42,
+    startSize,
+    vf.family,
+  );
+  let y = Math.round(h * 0.2) + size;
+  ctx.save();
+  ctx.globalAlpha = reveal;
+  ctx.translate(0, (1 - reveal) * 18);
+  ctx.direction = rtl ? 'rtl' : 'ltr';
+  ctx.textAlign = rtl ? 'right' : 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#33514b';
+  ctx.font = `600 ${size}px '${vf.family}', Georgia, serif`;
+  for (const line of lines) {
+    ctx.fillText(line, anchorX, y);
+    y += lineHeight;
+  }
+  ctx.restore();
+
+  // 3. Reference — centered, muted
+  const label = opts.versionAbbreviation
+    ? `${opts.reference}   ${opts.versionAbbreviation}`
+    : opts.reference;
+  ctx.save();
+  ctx.globalAlpha = detail;
+  ctx.direction = rtl ? 'rtl' : 'ltr';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#5b6b68';
+  ctx.font = `600 ${Math.round(w * 0.038)}px '${uiFamily}', system-ui, sans-serif`;
+  ctx.fillText(label, w / 2, Math.round(h * 0.6));
+  ctx.restore();
+
+  // 4. CTA — centered, bold dark
+  if (opts.cta) {
+    ctx.save();
+    ctx.globalAlpha = detail;
+    ctx.translate(0, (1 - detail) * 12);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = `800 ${Math.round(w * 0.052)}px '${uiFamily}', system-ui, sans-serif`;
+    ctx.fillText(opts.cta, w / 2, Math.round(h * 0.8));
+    ctx.restore();
+  }
+
+  // 5. Logo lockup — centered, bottom
+  if (logo) {
+    const nat = logo as { naturalWidth?: number; naturalHeight?: number };
+    const aspect = (nat.naturalWidth || 1) / (nat.naturalHeight || 1);
+    const targetH = Math.round(w * 0.1);
+    const lw = Math.round(targetH * aspect);
+    ctx.save();
+    ctx.globalAlpha = detail;
+    ctx.drawImage(logo, Math.round(w / 2 - lw / 2), Math.round(h * 0.855), lw, targetH);
     ctx.restore();
   }
 }
