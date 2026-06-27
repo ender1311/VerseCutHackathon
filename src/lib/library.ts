@@ -55,3 +55,43 @@ export async function listMyAds(): Promise<SavedAd[]> {
   if (!res.ok) throw new Error('Failed to load library');
   return (await res.json()).data as SavedAd[];
 }
+
+// --- Shared background assets (uploaded once, reusable by everyone) ----------
+
+export interface SharedAsset {
+  id: string;
+  createdAt: string;
+  kind: 'image' | 'video';
+  name: string;
+  fileUrl: string;
+}
+
+export async function listSharedAssets(): Promise<SharedAsset[]> {
+  const res = await fetch('/api/uploads');
+  if (!res.ok) throw new Error('Failed to load shared assets');
+  return (await res.json()).data as SharedAsset[];
+}
+
+/** Upload a background to Blob and register it as a team-shared asset. */
+export async function uploadSharedAsset(file: File): Promise<SharedAsset> {
+  const kind: 'image' | 'video' = file.type.startsWith('video') ? 'video' : 'image';
+  const safe = file.name.replace(/[^\w.-]+/g, '-');
+  const blob = await upload(`shared/${safe}`, file, {
+    access: 'public',
+    handleUploadUrl: '/api/blob/upload',
+    contentType: file.type,
+  });
+  const res = await fetch('/api/uploads', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      kind,
+      name: file.name,
+      fileUrl: blob.url,
+      mime: file.type,
+      sizeBytes: file.size,
+    }),
+  });
+  if (!res.ok) throw new Error('Failed to share asset');
+  return (await res.json()).data as SharedAsset;
+}

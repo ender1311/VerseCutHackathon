@@ -47,6 +47,9 @@ export function useStudio() {
   const [imageFile, setImageFileState] = useState<File | null>(null);
   const [videoFile, setVideoFileState] = useState<File | null>(null);
   const [libraryVideo, setLibraryVideo] = useState<SelectedLibraryVideo | null>(null);
+  const [sharedBg, setSharedBg] = useState<
+    { url: string; label: string; kind: 'image' | 'video' } | null
+  >(null);
   const [libraryBusy, setLibraryBusy] = useState(false);
   const [format, setFormat] = useState<OutputFormat>(config.output.defaultFormat);
   const [aspect, setAspect] = useState<AspectRatio>(config.output.defaultAspect);
@@ -130,6 +133,7 @@ export function useStudio() {
     if (f) {
       setVideoFileState(null);
       setLibraryVideo(null);
+      setSharedBg(null);
     }
   }, []);
   const setVideoFile = useCallback((f: File | null) => {
@@ -137,8 +141,21 @@ export function useStudio() {
     if (f) {
       setImageFileState(null);
       setLibraryVideo(null);
+      setSharedBg(null);
     }
   }, []);
+
+  /** Pick a team-shared background (image or video) by URL. */
+  const selectSharedAsset = useCallback(
+    (asset: { fileUrl: string; name: string; kind: 'image' | 'video' }) => {
+      setImageFileState(null);
+      setVideoFileState(null);
+      setLibraryVideo(null);
+      setSharedBg({ url: asset.fileUrl, label: asset.name, kind: asset.kind });
+    },
+    [],
+  );
+  const clearSharedBg = useCallback(() => setSharedBg(null), []);
 
   /** Browse the library for a date + the selected language. */
   const browseVideos = useCallback(
@@ -155,6 +172,7 @@ export function useStudio() {
       if (!url) throw new Error('No playable source for this video');
       setImageFileState(null);
       setVideoFileState(null);
+      setSharedBg(null);
       setLibraryVideo({ entry, url });
     } finally {
       setLibraryBusy(false);
@@ -167,6 +185,7 @@ export function useStudio() {
     try {
       setImageFileState(null);
       setVideoFileState(null);
+      setSharedBg(null);
       setLibraryVideo({ entry, url: importedVideoUrl(entry) });
     } finally {
       setLibraryBusy(false);
@@ -223,7 +242,9 @@ export function useStudio() {
         dimensions,
         imageFile,
         videoFile,
-        videoUrl: libraryVideo?.url ?? null,
+        imageUrl: sharedBg?.kind === 'image' ? sharedBg.url : null,
+        videoUrl:
+          libraryVideo?.url ?? (sharedBg?.kind === 'video' ? sharedBg.url : null),
         mimeType: (imageFormat === 'jpg' ? 'image/jpeg' : 'image/png') as
           | 'image/png'
           | 'image/jpeg',
@@ -273,6 +294,7 @@ export function useStudio() {
     imageFile,
     videoFile,
     libraryVideo,
+    sharedBg,
     imageFormat,
     logoStyle,
     durationSec,
@@ -310,6 +332,10 @@ export function useStudio() {
     selectLibraryVideo,
     selectImportedVideo,
     clearLibraryVideo,
+    // shared backgrounds
+    sharedBg,
+    selectSharedAsset,
+    clearSharedBg,
     format,
     setFormat,
     aspect,

@@ -12,7 +12,9 @@ export interface RenderInput {
   dimensions: { width: number; height: number };
   imageFile: File | null;
   videoFile: File | null;
-  /** Remote (same-origin proxied) background video URL from the library. */
+  /** Remote background image URL (e.g. a shared upload in Blob). */
+  imageUrl?: string | null;
+  /** Remote background video URL from the library or a shared upload. */
   videoUrl?: string | null;
   mimeType?: 'image/png' | 'image/jpeg';
   /** Selected language id; used to pick a localized corner logo. */
@@ -72,6 +74,10 @@ async function buildBackground(
     const url = URL.createObjectURL(input.imageFile);
     const image = await loadImage(url);
     return { background: { type: 'image', image }, cleanup: () => URL.revokeObjectURL(url) };
+  }
+  if (input.imageUrl) {
+    const image = await loadImage(input.imageUrl);
+    return { background: { type: 'image', image }, cleanup: () => {} };
   }
   if (input.videoFile) {
     const url = URL.createObjectURL(input.videoFile);

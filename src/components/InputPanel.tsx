@@ -2,6 +2,7 @@ import type { useStudio } from '../lib/useStudio';
 import { ImageIcon, Play, Spinner, VideoIcon } from './icons';
 import { FieldLabel, Segmented, SectionHeader, Select, Stepper, UploadField } from './ui';
 import { VideoLibrary } from './VideoLibrary';
+import { SharedBackgrounds } from './SharedBackgrounds';
 
 type Studio = ReturnType<typeof useStudio>;
 
@@ -103,8 +104,8 @@ export function InputPanel({ studio }: { studio: Studio }) {
         <div className="mb-6">
           <UploadField
             label="Background video"
-            hint="MP4 / MOV"
-            accept="video/mp4,video/quicktime"
+            hint="MP4 / WEBM / MOV"
+            accept="video/mp4,video/webm,video/quicktime"
             icon={<VideoIcon />}
             file={studio.videoFile}
             onSelect={(f) => studio.setVideoFile(f)}
@@ -112,8 +113,12 @@ export function InputPanel({ studio }: { studio: Studio }) {
           />
         </div>
 
-        <div className="mb-2">
+        <div className="mb-6">
           <VideoLibrary studio={studio} />
+        </div>
+
+        <div className="mb-2">
+          <SharedBackgrounds studio={studio} />
         </div>
       </div>
 
