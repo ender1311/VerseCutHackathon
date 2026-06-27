@@ -5,6 +5,7 @@ import { config } from './config';
 import { InputPanel } from './components/InputPanel';
 import { OutputPanel } from './components/OutputPanel';
 import { LibraryDrawer } from './components/LibraryDrawer';
+import { SpaceSwitcher } from './components/SpaceSwitcher';
 import { useStudio } from './lib/useStudio';
 import { BIBLE_APP_ASSETS } from './lib/iconCatalog';
 
@@ -38,6 +39,7 @@ export default function App({ userEmail }: { userEmail?: string | null }) {
             <div className="text-[12px] font-medium text-muted">{config.brand.tagline}</div>
           </div>
         </div>
+        <SpaceSwitcher />
         <div className="flex items-center gap-3">
           <button
             type="button"
