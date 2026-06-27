@@ -25,6 +25,9 @@ const eslintConfig = defineConfig([
     'build/**',
     'next-env.d.ts',
     'node_modules/**',
+    // Offline HyperFrames workspace — Node CLI scripts + generated compositions,
+    // not part of the Next app.
+    'videos/**',
     'src/lib/iconCatalog.ts',
     'src/lib/bible/appLanguages.ts',
   ]),
