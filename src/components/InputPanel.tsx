@@ -2,7 +2,7 @@ import type { useStudio } from '../lib/useStudio';
 import { ImageIcon, Play, Spinner, VideoIcon } from './icons';
 import { FieldLabel, Segmented, SectionHeader, Select, Stepper, UploadField } from './ui';
 import { VideoLibrary } from './VideoLibrary';
-import { SharedBackgrounds } from './SharedBackgrounds';
+import { ImageLibrary } from './ImageLibrary';
 
 type Studio = ReturnType<typeof useStudio>;
 
@@ -118,7 +118,7 @@ export function InputPanel({ studio }: { studio: Studio }) {
         </div>
 
         <div className="mb-2">
-          <SharedBackgrounds studio={studio} />
+          <ImageLibrary studio={studio} />
         </div>
       </div>
 

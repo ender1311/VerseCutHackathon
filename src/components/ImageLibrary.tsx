@@ -5,13 +5,13 @@ import {
   uploadSharedAsset,
   type SharedAsset,
 } from '../lib/library';
-import { ImageIcon, Spinner, UploadCloud, VideoIcon, XMark } from './icons';
+import { ImageIcon, Spinner, UploadCloud, XMark } from './icons';
 import { FieldLabel } from './ui';
 
 type Studio = ReturnType<typeof useStudio>;
 
-export function SharedBackgrounds({ studio }: { studio: Studio }) {
-  const [assets, setAssets] = useState<SharedAsset[]>([]);
+export function ImageLibrary({ studio }: { studio: Studio }) {
+  const [images, setImages] = useState<SharedAsset[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,8 +20,8 @@ export function SharedBackgrounds({ studio }: { studio: Studio }) {
   function refresh() {
     setLoading(true);
     listSharedAssets()
-      .then(setAssets)
-      .catch(() => setError('Could not load shared backgrounds'))
+      .then((all) => setImages(all.filter((a) => a.kind === 'image')))
+      .catch(() => setError('Could not load the image library'))
       .finally(() => setLoading(false));
   }
   useEffect(refresh, []);
@@ -31,7 +31,7 @@ export function SharedBackgrounds({ studio }: { studio: Studio }) {
     setError(null);
     try {
       const asset = await uploadSharedAsset(file);
-      setAssets((prev) => [asset, ...prev]);
+      setImages((prev) => [asset, ...prev]);
       studio.selectSharedAsset(asset);
     } catch {
       setError('Upload failed');
@@ -44,12 +44,12 @@ export function SharedBackgrounds({ studio }: { studio: Studio }) {
 
   return (
     <div>
-      <FieldLabel hint="Team · reusable">Shared backgrounds</FieldLabel>
+      <FieldLabel hint="Reusable backgrounds">Image library</FieldLabel>
 
       <input
         ref={inputRef}
         type="file"
-        accept="image/png,image/jpeg,video/mp4,video/webm,video/quicktime"
+        accept="image/png,image/jpeg"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -61,14 +61,14 @@ export function SharedBackgrounds({ studio }: { studio: Studio }) {
       {selected && (
         <div className="mb-2 flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
-            {selected.kind === 'video' ? <VideoIcon /> : <ImageIcon />}
+            <ImageIcon />
           </div>
           <div className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ink">
             {selected.label}
           </div>
           <button
             type="button"
-            aria-label="Remove shared background"
+            aria-label="Remove background image"
             onClick={studio.clearSharedBg}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-faint transition hover:bg-line-soft hover:text-ink"
           >
@@ -89,9 +89,9 @@ export function SharedBackgrounds({ studio }: { studio: Studio }) {
           </div>
           <div>
             <div className="text-[13px] font-semibold text-ink">
-              {uploading ? 'Uploading…' : 'Upload & share a background'}
+              {uploading ? 'Uploading…' : 'Add an image to the library'}
             </div>
-            <div className="text-[11px] text-faint">Image or video (MP4 / WEBM / MOV)</div>
+            <div className="text-[11px] text-faint">JPG / PNG · reusable across the team</div>
           </div>
         </button>
 
@@ -102,13 +102,13 @@ export function SharedBackgrounds({ studio }: { studio: Studio }) {
           </div>
         )}
 
-        {!loading && assets.length === 0 && (
-          <p className="text-[12px] text-faint">No shared backgrounds yet.</p>
+        {!loading && images.length === 0 && (
+          <p className="text-[12px] text-faint">No images yet — add one above.</p>
         )}
 
-        {assets.length > 0 && (
+        {images.length > 0 && (
           <div className="grid grid-cols-3 gap-2">
-            {assets.map((a) => {
+            {images.map((a) => {
               const active = selected?.url === a.fileUrl;
               return (
                 <button
@@ -120,11 +120,7 @@ export function SharedBackgrounds({ studio }: { studio: Studio }) {
                     active ? 'border-brand ring-2 ring-brand/30' : 'border-line hover:border-faint'
                   }`}
                 >
-                  {a.kind === 'video' ? (
-                    <video src={a.fileUrl} className="h-full w-full object-cover" muted />
-                  ) : (
-                    <img src={a.fileUrl} alt={a.name} className="h-full w-full object-cover" />
-                  )}
+                  <img src={a.fileUrl} alt={a.name} className="h-full w-full object-cover" />
                 </button>
               );
             })}
