@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { defaultCta } from './cta';
 import { SOCIAL_FORMAT_BY_ID } from './socialFormats';
+import { synthesize, preloadTts, ttsState, hasWebGPU } from './tts';
+import { defaultVoice, voiceSupported, VOICES } from './voices';
 import { ASPECT_DIMENSIONS, config, type AspectRatio, type OutputFormat } from '../config';
 import { getBibleProvider, type BibleVersion, type Book, type Language } from './bible';
 import { renderImage, renderVideo, type RenderedAsset } from './render';
@@ -65,6 +67,9 @@ export function useStudio() {
   const [durationSec, setDurationSec] = useState<number>(config.output.videoDurationSec);
   const [logoStyle, setLogoStyle] = useState<LogoStyle>(config.brand.defaultLogoStyle);
   const [musicFile, setMusicFile] = useState<File | null>(null);
+  const [voiceover, setVoiceoverState] = useState(false);
+  const [voiceId, setVoiceId] = useState<string | null>(null);
+  const voiceTouched = useRef(false);
   const [template, setTemplate] = useState<'classic' | 'promo'>('classic');
   const [cta, setCtaState] = useState<string>(defaultCta('en'));
   const ctaTouched = useRef(false);
@@ -135,6 +140,34 @@ export function useStudio() {
   useEffect(() => {
     if (!ctaTouched.current) setCtaState(defaultCta(languageCode));
   }, [languageCode]);
+
+  const voiceSupportedForLang = voiceSupported(languageCode);
+  const voices = useMemo(() => {
+    const base = languageCode.split(/[-_]/)[0];
+    return VOICES.filter((v) => v.lang === base);
+  }, [languageCode]);
+
+  // On language change, reset to that language's default Kokoro voice (a voice
+  // picked for the previous language doesn't apply here). If the new language
+  // isn't covered, disable voiceover.
+  useEffect(() => {
+    voiceTouched.current = false;
+    setVoiceId(defaultVoice(languageCode));
+    if (!voiceSupported(languageCode)) setVoiceoverState(false);
+  }, [languageCode]);
+
+  const setVoice = useCallback((id: string) => {
+    voiceTouched.current = true;
+    setVoiceId(id);
+  }, []);
+
+  // Toggling voiceover on kicks off the (cached) model download early.
+  const setVoiceover = useCallback((on: boolean) => {
+    setVoiceoverState(on);
+    if (on) preloadTts();
+  }, []);
+
+  const ttsStatus = ttsState();
 
   const currentBook = books.find((b) => b.id === bookId);
   const maxChapter = currentBook?.chapters ?? 150;
@@ -238,11 +271,16 @@ export function useStudio() {
     setError(null);
     setAsset(null);
 
+    const useVoiceover =
+      format === 'video' && voiceover && !!voiceId && voiceSupportedForLang;
     const composeLabel =
       format === 'video' ? 'Compositing frames' : 'Compositing layers';
     const renderLabel = format === 'video' ? 'Encoding MP4' : 'Exporting image';
     const initial: Stage[] = [
       { id: 'fetch', label: 'Fetching verse', status: 'active' },
+      ...(useVoiceover
+        ? [{ id: 'voice', label: 'Synthesizing voiceover', status: 'pending' as const }]
+        : []),
       { id: 'compose', label: composeLabel, status: 'pending' },
       { id: 'render', label: renderLabel, status: 'pending' },
     ];
@@ -258,11 +296,26 @@ export function useStudio() {
         toVerse,
       });
       patchStage('fetch', { status: 'done' });
-      patchStage('compose', { status: 'active' });
       setLastPassage({
         reference: passage.reference,
         versionAbbreviation: passage.versionAbbreviation,
       });
+
+      let narrationBlob: Blob | null = null;
+      let effectiveDuration = durationSec;
+      if (useVoiceover && voiceId) {
+        patchStage('voice', { status: 'active' });
+        const narrationText = `${passage.text} ${passage.reference}`;
+        const narration = await synthesize(narrationText, voiceId, (pct) =>
+          patchStage('voice', { progress: pct / 100 }),
+        );
+        narrationBlob = narration.blob;
+        // Give the verse room to finish, plus a short tail.
+        effectiveDuration = Math.max(durationSec, Math.ceil(narration.durationSec) + 1);
+        patchStage('voice', { status: 'done', progress: 1 });
+      }
+
+      patchStage('compose', { status: 'active' });
 
       const dimensions = ASPECT_DIMENSIONS[aspect];
       const input = {
@@ -281,8 +334,9 @@ export function useStudio() {
         logoStyle,
         template,
         cta,
-        durationSec,
+        durationSec: effectiveDuration,
         musicFile,
+        narrationBlob,
       };
 
       let result: RenderedAsset;
@@ -333,8 +387,25 @@ export function useStudio() {
     cta,
     durationSec,
     musicFile,
+    voiceover,
+    voiceId,
+    voiceSupportedForLang,
     patchStage,
   ]);
+
+  // Rough build-time estimate (seconds) shown before Generate. Video capture is
+  // real-time, so duration dominates; voiceover adds a one-time model download
+  // (cached after first run) plus synthesis.
+  const estimateSec = useMemo(() => {
+    if (format === 'image') return 3;
+    const useVoiceover = voiceover && !!voiceId && voiceSupportedForLang;
+    let s = durationSec + 3; // real-time capture + encode
+    if (useVoiceover) {
+      if (ttsStatus.status !== 'ready') s += hasWebGPU() ? 20 : 35; // model download/warmup
+      s += hasWebGPU() ? 6 : 12; // synthesis
+    }
+    return Math.round(s);
+  }, [format, durationSec, voiceover, voiceId, voiceSupportedForLang, ttsStatus.status]);
 
   return {
     // data
@@ -390,6 +461,15 @@ export function useStudio() {
     setCta,
     musicFile,
     setMusicFile,
+    // voiceover
+    voiceover,
+    setVoiceover,
+    voiceId,
+    setVoice,
+    voices,
+    voiceSupportedForLang,
+    ttsStatus,
+    estimateSec,
     // generation
     phase,
     stages,

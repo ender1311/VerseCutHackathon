@@ -31,6 +31,8 @@ export interface RenderInput {
   musicFile?: File | null;
   /** Music gain 0..1 (defaults applied in the mixer). */
   musicVolume?: number;
+  /** Voiceover narration audio (from in-browser Kokoro TTS) to mix in. */
+  narrationBlob?: Blob | null;
 }
 
 /** The promo template uses the horizontal light lockup; classic uses the chosen style. */
@@ -193,9 +195,10 @@ function buildAudioMix(opts: {
   video?: HTMLVideoElement | null;
   musicUrl?: string | null;
   musicVolume?: number;
+  narrationUrl?: string | null;
 }): { track: MediaStreamTrack; start: () => void; cleanup: () => void } | null {
-  const { video, musicUrl } = opts;
-  if (!video && !musicUrl) return null;
+  const { video, musicUrl, narrationUrl } = opts;
+  if (!video && !musicUrl && !narrationUrl) return null;
   try {
     const AC: typeof AudioContext =
       window.AudioContext ||
@@ -206,7 +209,7 @@ function buildAudioMix(opts: {
     if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
     const dest = ctx.createMediaStreamDestination();
     const disconnects: Array<() => void> = [];
-    let musicEl: HTMLAudioElement | null = null;
+    const playables: HTMLAudioElement[] = [];
 
     if (video) {
       video.muted = false;
@@ -216,20 +219,31 @@ function buildAudioMix(opts: {
       disconnects.push(() => s.disconnect());
     }
 
+    if (narrationUrl) {
+      const el = new Audio();
+      el.src = narrationUrl;
+      el.crossOrigin = 'anonymous';
+      const s = ctx.createMediaElementSource(el);
+      s.connect(dest); // voiceover at full volume
+      disconnects.push(() => s.disconnect());
+      playables.push(el);
+    }
+
     if (musicUrl) {
-      musicEl = new Audio();
-      musicEl.src = musicUrl;
-      musicEl.loop = true;
-      musicEl.crossOrigin = 'anonymous';
-      const s = ctx.createMediaElementSource(musicEl);
+      const el = new Audio();
+      el.src = musicUrl;
+      el.loop = true;
+      el.crossOrigin = 'anonymous';
+      const s = ctx.createMediaElementSource(el);
       const gain = ctx.createGain();
-      // Duck the music under any video/voice audio.
-      gain.gain.value = opts.musicVolume ?? (video ? 0.35 : 0.8);
+      // Duck music further when a voiceover is present.
+      gain.gain.value = opts.musicVolume ?? (narrationUrl ? 0.14 : video ? 0.35 : 0.8);
       s.connect(gain).connect(dest);
       disconnects.push(() => {
         s.disconnect();
         gain.disconnect();
       });
+      playables.push(el);
     }
 
     const track = dest.stream.getAudioTracks()[0];
@@ -240,14 +254,14 @@ function buildAudioMix(opts: {
     return {
       track,
       start: () => {
-        if (musicEl) {
-          musicEl.currentTime = 0;
-          void musicEl.play().catch(() => {});
+        for (const el of playables) {
+          el.currentTime = 0;
+          void el.play().catch(() => {});
         }
       },
       cleanup: () => {
         try {
-          musicEl?.pause();
+          playables.forEach((el) => el.pause());
           disconnects.forEach((d) => d());
           ctx.close();
         } catch {
@@ -283,11 +297,13 @@ async function captureCanvas(
   let audioCleanup: (() => void) | null = null;
   let startAudio: (() => void) | null = null;
   const musicUrl = input.musicFile ? URL.createObjectURL(input.musicFile) : null;
+  const narrationUrl = input.narrationBlob ? URL.createObjectURL(input.narrationBlob) : null;
   if (background.type === 'video') background.video.currentTime = 0;
   const mix = buildAudioMix({
     video: background.type === 'video' ? background.video : null,
     musicUrl,
     musicVolume: input.musicVolume,
+    narrationUrl,
   });
   if (mix) {
     stream.addTrack(mix.track);
@@ -295,6 +311,7 @@ async function captureCanvas(
     audioCleanup = () => {
       mix.cleanup();
       if (musicUrl) URL.revokeObjectURL(musicUrl);
+      if (narrationUrl) URL.revokeObjectURL(narrationUrl);
     };
   }
   if (background.type === 'video') await background.video.play().catch(() => {});

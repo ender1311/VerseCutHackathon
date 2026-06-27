@@ -160,7 +160,7 @@ export function InputPanel({
         </div>
 
         {studio.format === 'video' && (
-          <div className="mb-2">
+          <div className="mb-6">
             <UploadField
               label="Background music"
               hint="MP3 / WAV · ambient"
@@ -170,6 +170,40 @@ export function InputPanel({
               onSelect={(f) => studio.setMusicFile(f)}
               onClear={() => studio.setMusicFile(null)}
             />
+          </div>
+        )}
+
+        {studio.format === 'video' && studio.voiceSupportedForLang && (
+          <div className="mb-2">
+            <FieldLabel hint="In-browser AI narration">Voiceover</FieldLabel>
+            <Segmented
+              value={studio.voiceover ? 'on' : 'off'}
+              onChange={(v) => studio.setVoiceover(v === 'on')}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'on', label: 'On' },
+              ]}
+            />
+            {studio.voiceover && (
+              <>
+                <div className="mt-3">
+                  <Select
+                    value={studio.voiceId ?? ''}
+                    onChange={studio.setVoice}
+                    options={studio.voices.map((v) => ({ value: v.id, label: v.label }))}
+                  />
+                </div>
+                {studio.ttsStatus.status === 'loading' && (
+                  <p className="mt-2 text-[12px] text-faint">
+                    Downloading voice model… {studio.ttsStatus.pct}%
+                  </p>
+                )}
+                <p className="mt-2 text-[12px] text-faint">
+                  Reads the verse aloud and ducks the music under it. The voice model
+                  (~80&nbsp;MB) downloads once, then is cached.
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -260,6 +294,12 @@ export function InputPanel({
               />
             </div>
           </div>
+        )}
+
+        {!running && (
+          <p className="mb-2 text-center text-[12px] text-faint">
+            Estimated build time: ~{studio.estimateSec}s
+          </p>
         )}
 
         <button
