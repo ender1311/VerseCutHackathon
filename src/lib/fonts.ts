@@ -75,7 +75,8 @@ function spec(script: Script, languageId?: string): FontSpec {
     case 'korean':
       return { family: 'Noto Serif KR', googleFamily: 'Noto+Serif+KR:wght@400..700', rtl: false };
     case 'han': {
-      const tw = languageId === 'zh-TW' || languageId === 'zh-HK';
+      const tw =
+        languageId === 'zh-TW' || languageId === 'zh-HK' || languageId === 'zh_TW';
       return tw
         ? { family: 'Noto Serif TC', googleFamily: 'Noto+Serif+TC:wght@400..700', rtl: false }
         : { family: 'Noto Serif SC', googleFamily: 'Noto+Serif+SC:wght@400..700', rtl: false };

@@ -53,7 +53,15 @@ export async function fetchLessonsForDate(
   });
   if (!res.ok) throw new Error(`Stories request failed (${res.status})`);
   const json = await res.json();
-  const rows: any[] = json?.data ?? [];
+  const rows = (json?.data ?? []) as Array<{
+    id: number;
+    video_id?: number | null;
+    title?: string;
+    references?: string[];
+    live_date?: string;
+    language_tag?: string;
+    organization_id?: number | null;
+  }>;
   return rows.map((r) => ({
     lessonId: r.id,
     videoId: r.video_id ?? null,

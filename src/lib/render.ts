@@ -177,7 +177,9 @@ function tapVideoAudio(
 ): { track: MediaStreamTrack; cleanup: () => void } | null {
   try {
     const AC: typeof AudioContext =
-      window.AudioContext || (window as any).webkitAudioContext;
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
     if (!AC) return null;
     video.muted = false;
     video.volume = 1;

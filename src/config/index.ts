@@ -33,8 +33,9 @@ export const config = {
      *  - 'youversion' — YouVersion Platform API (api.youversion.com), via proxy.
      *  - 'api.bible'  — scripture.api.bible.
      */
-    provider: (process.env.NEXT_PUBLIC_BIBLE_PROVIDER ?? 'youversion') as
+    provider: (process.env.NEXT_PUBLIC_BIBLE_PROVIDER ?? 'youversion-internal') as
       | 'mock'
+      | 'youversion-internal'
       | 'youversion'
       | 'api.bible',
 
