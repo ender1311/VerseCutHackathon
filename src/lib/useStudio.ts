@@ -147,10 +147,12 @@ export function useStudio() {
     return VOICES.filter((v) => v.lang === base);
   }, [languageCode]);
 
-  // Track the language's default Kokoro voice until the user picks one. If the
-  // new language isn't covered, disable voiceover.
+  // On language change, reset to that language's default Kokoro voice (a voice
+  // picked for the previous language doesn't apply here). If the new language
+  // isn't covered, disable voiceover.
   useEffect(() => {
-    if (!voiceTouched.current) setVoiceId(defaultVoice(languageCode));
+    voiceTouched.current = false;
+    setVoiceId(defaultVoice(languageCode));
     if (!voiceSupported(languageCode)) setVoiceoverState(false);
   }, [languageCode]);
 
