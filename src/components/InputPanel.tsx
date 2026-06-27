@@ -21,7 +21,11 @@ export function InputPanel({ studio }: { studio: Studio }) {
             value={studio.languageId}
             onChange={studio.setLanguageId}
             placeholder="Select a language"
-            options={studio.languages.map((l) => ({ value: l.id, label: l.name }))}
+            options={studio.languages.map((l) => ({
+              value: l.id,
+              label: l.name,
+              group: l.group,
+            }))}
           />
         </div>
 

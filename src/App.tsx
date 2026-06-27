@@ -20,7 +20,7 @@ export default function App({ userEmail }: { userEmail?: string | null }) {
   const status = STATUS[studio.phase];
   const [libraryOpen, setLibraryOpen] = useState(false);
 
-  const langIcon = BIBLE_APP_ASSETS['icon-only'][studio.languageId];
+  const langIcon = BIBLE_APP_ASSETS['icon-only'][studio.languageCode];
   const headerLogo = langIcon
     ? `${config.brand.logoBaseDir}/icon-only/${langIcon}`
     : config.brand.logoPath;

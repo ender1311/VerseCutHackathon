@@ -45,10 +45,18 @@ export function Select<T extends string>({
 }: {
   value: T | '';
   onChange: (v: T) => void;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; group?: string }[];
   placeholder?: string;
   disabled?: boolean;
 }) {
+  // Preserve first-seen order of groups; ungrouped options render at the top.
+  const groups: string[] = [];
+  for (const o of options) {
+    const g = o.group ?? '';
+    if (!groups.includes(g)) groups.push(g);
+  }
+  const grouped = groups.length > 1 || (groups.length === 1 && groups[0] !== '');
+
   return (
     <div className="relative">
       <select
@@ -62,11 +70,33 @@ export function Select<T extends string>({
             {placeholder}
           </option>
         )}
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
+        {grouped
+          ? groups.map((g) =>
+              g === '' ? (
+                options
+                  .filter((o) => (o.group ?? '') === '')
+                  .map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))
+              ) : (
+                <optgroup key={g} label={g}>
+                  {options
+                    .filter((o) => o.group === g)
+                    .map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                </optgroup>
+              ),
+            )
+          : options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
       </select>
       <ChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-faint" />
     </div>

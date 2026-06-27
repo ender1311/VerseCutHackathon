@@ -72,7 +72,7 @@ export function useStudio() {
     provider.listLanguages().then((langs) => {
       setLanguages(langs);
       const def =
-        langs.find((l) => l.id === 'eng' || l.id === 'en') ??
+        langs.find((l) => l.id === 'i:en' || l.id === 'en' || l.id === 'eng') ??
         langs.find((l) => /^english$/i.test(l.name)) ??
         langs[0];
       if (def) setLanguageId(def.id);
@@ -86,7 +86,10 @@ export function useStudio() {
     provider.listVersions(languageId).then((vs) => {
       if (!active) return;
       setVersions(vs);
-      const def = vs.find((v) => v.id === config.bible.defaultVersionId) ?? vs[0];
+      const def =
+        vs.find((v) => v.id === config.bible.defaultVersionId) ??
+        vs.find((v) => v.id.endsWith(`:${config.bible.defaultVersionId}`)) ??
+        vs[0];
       setVersionId(def?.id ?? '');
     });
     return () => {
@@ -106,6 +109,11 @@ export function useStudio() {
       active = false;
     };
   }, [provider, versionId]);
+
+  // Bare language code (the picker ids are source-prefixed, e.g. "i:af" / "p:aai").
+  const languageCode = languageId.includes(':')
+    ? languageId.slice(languageId.indexOf(':') + 1)
+    : languageId;
 
   const currentBook = books.find((b) => b.id === bookId);
   const maxChapter = currentBook?.chapters ?? 150;
@@ -159,8 +167,8 @@ export function useStudio() {
 
   /** Browse the library for a date + the selected language. */
   const browseVideos = useCallback(
-    (date: string) => listVideosForDate(date, languageId || 'en'),
-    [languageId],
+    (date: string) => listVideosForDate(date, languageCode || 'en'),
+    [languageCode],
   );
 
   /** Pick a library video: resolve its playback URL and set it as the background. */
@@ -248,7 +256,7 @@ export function useStudio() {
         mimeType: (imageFormat === 'jpg' ? 'image/jpeg' : 'image/png') as
           | 'image/png'
           | 'image/jpeg',
-        languageId,
+        languageId: languageCode,
         logoStyle,
         durationSec,
       };
@@ -310,6 +318,7 @@ export function useStudio() {
     maxVerse: MAX_VERSE,
     // form
     languageId,
+    languageCode,
     setLanguageId,
     versionId,
     setVersionId,

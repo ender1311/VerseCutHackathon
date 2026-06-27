@@ -1,6 +1,8 @@
 export interface Language {
   id: string;
   name: string;
+  /** Optional grouping label for the picker (e.g. "Top picks"). */
+  group?: string;
 }
 
 export interface BibleVersion {

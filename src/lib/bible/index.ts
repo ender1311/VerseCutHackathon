@@ -3,6 +3,7 @@ import { ApiBibleProvider } from './apiBibleProvider';
 import { MockBibleProvider } from './mockProvider';
 import { YouVersionPlatformProvider } from './youVersionPlatformProvider';
 import { YouVersionInternalProvider } from './internalProvider';
+import { HybridBibleProvider } from './hybridProvider';
 import type { BibleProvider } from './types';
 
 let cached: BibleProvider | null = null;
@@ -11,6 +12,10 @@ let cached: BibleProvider | null = null;
 export function getBibleProvider(): BibleProvider {
   if (cached) return cached;
   switch (config.bible.provider) {
+    case 'youversion-hybrid':
+      // Top picks + Bible App (internal) + full Platform catalog, grouped.
+      cached = new HybridBibleProvider();
+      break;
     case 'youversion-internal':
       // Internal reader API — full Bible App language list, no license gating.
       cached = new YouVersionInternalProvider();
