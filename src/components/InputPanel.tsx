@@ -148,9 +148,23 @@ export function InputPanel({ studio }: { studio: Studio }) {
           <VideoLibrary studio={studio} />
         </div>
 
-        <div className="mb-2">
+        <div className="mb-6">
           <ImageLibrary studio={studio} />
         </div>
+
+        {studio.format === 'video' && (
+          <div className="mb-2">
+            <UploadField
+              label="Background music"
+              hint="MP3 / WAV · ambient"
+              accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/aac,audio/ogg"
+              icon={<VideoIcon />}
+              file={studio.musicFile}
+              onSelect={(f) => studio.setMusicFile(f)}
+              onClear={() => studio.setMusicFile(null)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Sticky footer: format + aspect + generate */}

@@ -57,6 +57,7 @@ export function useStudio() {
   const [imageFormat, setImageFormat] = useState<'png' | 'jpg'>('png');
   const [durationSec, setDurationSec] = useState<number>(config.output.videoDurationSec);
   const [logoStyle, setLogoStyle] = useState<LogoStyle>(config.brand.defaultLogoStyle);
+  const [musicFile, setMusicFile] = useState<File | null>(null);
   const [template, setTemplate] = useState<'classic' | 'promo'>('classic');
   const [cta, setCtaState] = useState<string>(defaultCta('en'));
   const ctaTouched = useRef(false);
@@ -274,6 +275,7 @@ export function useStudio() {
         template,
         cta,
         durationSec,
+        musicFile,
       };
 
       let result: RenderedAsset;
@@ -323,6 +325,7 @@ export function useStudio() {
     template,
     cta,
     durationSec,
+    musicFile,
     patchStage,
   ]);
 
@@ -376,6 +379,8 @@ export function useStudio() {
     setTemplate,
     cta,
     setCta,
+    musicFile,
+    setMusicFile,
     // generation
     phase,
     stages,

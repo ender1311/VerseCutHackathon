@@ -27,6 +27,10 @@ export interface RenderInput {
   cta?: string | null;
   /** Video length in seconds (defaults to config). */
   durationSec?: number;
+  /** Ambient/background music track to mix into the video audio. */
+  musicFile?: File | null;
+  /** Music gain 0..1 (defaults applied in the mixer). */
+  musicVolume?: number;
 }
 
 /** The promo template uses the horizontal light lockup; classic uses the chosen style. */
@@ -180,26 +184,54 @@ function pickRecordingMime(): { mime: string; ext: string } {
 }
 
 /**
- * Tap a video element's audio into a capturable MediaStream track via Web Audio.
- * Routes only to the stream destination (no speakers). Returns null if the
- * background has no audio or the graph can't be built.
+ * Build one capturable audio track via Web Audio, mixing (a) the background
+ * video's own audio and (b) an ambient music track, into a single stream that's
+ * recorded with the canvas. Routes only to the stream destination (no speakers).
+ * Returns null if there's nothing to mix.
  */
-function tapVideoAudio(
-  video: HTMLVideoElement,
-): { track: MediaStreamTrack; cleanup: () => void } | null {
+function buildAudioMix(opts: {
+  video?: HTMLVideoElement | null;
+  musicUrl?: string | null;
+  musicVolume?: number;
+}): { track: MediaStreamTrack; start: () => void; cleanup: () => void } | null {
+  const { video, musicUrl } = opts;
+  if (!video && !musicUrl) return null;
   try {
     const AC: typeof AudioContext =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext })
         .webkitAudioContext;
     if (!AC) return null;
-    video.muted = false;
-    video.volume = 1;
     const ctx = new AC();
     if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
-    const source = ctx.createMediaElementSource(video);
     const dest = ctx.createMediaStreamDestination();
-    source.connect(dest); // capture only — intentionally not connected to ctx.destination
+    const disconnects: Array<() => void> = [];
+    let musicEl: HTMLAudioElement | null = null;
+
+    if (video) {
+      video.muted = false;
+      video.volume = 1;
+      const s = ctx.createMediaElementSource(video);
+      s.connect(dest);
+      disconnects.push(() => s.disconnect());
+    }
+
+    if (musicUrl) {
+      musicEl = new Audio();
+      musicEl.src = musicUrl;
+      musicEl.loop = true;
+      musicEl.crossOrigin = 'anonymous';
+      const s = ctx.createMediaElementSource(musicEl);
+      const gain = ctx.createGain();
+      // Duck the music under any video/voice audio.
+      gain.gain.value = opts.musicVolume ?? (video ? 0.35 : 0.8);
+      s.connect(gain).connect(dest);
+      disconnects.push(() => {
+        s.disconnect();
+        gain.disconnect();
+      });
+    }
+
     const track = dest.stream.getAudioTracks()[0];
     if (!track) {
       ctx.close();
@@ -207,9 +239,16 @@ function tapVideoAudio(
     }
     return {
       track,
+      start: () => {
+        if (musicEl) {
+          musicEl.currentTime = 0;
+          void musicEl.play().catch(() => {});
+        }
+      },
       cleanup: () => {
         try {
-          source.disconnect();
+          musicEl?.pause();
+          disconnects.forEach((d) => d());
           ctx.close();
         } catch {
           /* noop */
@@ -240,17 +279,25 @@ async function captureCanvas(
   const durationMs = (input.durationSec ?? config.output.videoDurationSec) * 1000;
   const stream = canvas.captureStream(fps);
 
-  // Mix in the background video's audio track when present.
+  // Mix background-video audio and/or ambient music into one captured track.
   let audioCleanup: (() => void) | null = null;
-  if (background.type === 'video') {
-    background.video.currentTime = 0;
-    const audio = tapVideoAudio(background.video);
-    if (audio) {
-      stream.addTrack(audio.track);
-      audioCleanup = audio.cleanup;
-    }
-    await background.video.play().catch(() => {});
+  let startAudio: (() => void) | null = null;
+  const musicUrl = input.musicFile ? URL.createObjectURL(input.musicFile) : null;
+  if (background.type === 'video') background.video.currentTime = 0;
+  const mix = buildAudioMix({
+    video: background.type === 'video' ? background.video : null,
+    musicUrl,
+    musicVolume: input.musicVolume,
+  });
+  if (mix) {
+    stream.addTrack(mix.track);
+    startAudio = mix.start;
+    audioCleanup = () => {
+      mix.cleanup();
+      if (musicUrl) URL.revokeObjectURL(musicUrl);
+    };
   }
+  if (background.type === 'video') await background.video.play().catch(() => {});
 
   const recorder = new MediaRecorder(stream, {
     mimeType,
@@ -265,6 +312,7 @@ async function captureCanvas(
   });
 
   recorder.start();
+  startAudio?.();
   const start = performance.now();
 
   await new Promise<void>((resolve) => {
