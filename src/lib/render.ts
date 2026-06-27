@@ -21,8 +21,18 @@ export interface RenderInput {
   languageId?: string;
   /** Logo style for the corner mark. */
   logoStyle?: LogoStyle;
+  /** Layout template. */
+  template?: 'classic' | 'promo';
+  /** Call-to-action line for the promo template. */
+  cta?: string | null;
   /** Video length in seconds (defaults to config). */
   durationSec?: number;
+}
+
+/** The promo template uses the horizontal light lockup; classic uses the chosen style. */
+function effectiveLogoStyle(input: RenderInput): LogoStyle {
+  if (input.template === 'promo') return 'logo-light';
+  return input.logoStyle ?? config.brand.defaultLogoStyle;
 }
 
 /** Resolve the corner-logo path, optionally localized to the language + style. */
@@ -97,9 +107,9 @@ async function buildBackground(
 export async function renderImage(input: RenderInput): Promise<RenderedAsset> {
   await ensureFontsReady();
   const verseFont = await loadVerseFont(input.passage.text, input.languageId);
-  const logo = await loadImage(resolveLogoPath(input.languageId, input.logoStyle)).catch(
-    () => null,
-  );
+  const logo = await loadImage(
+    resolveLogoPath(input.languageId, effectiveLogoStyle(input)),
+  ).catch(() => null);
   const { background, cleanup } = await buildBackground(input);
 
   const canvas = document.createElement('canvas');
@@ -116,7 +126,9 @@ export async function renderImage(input: RenderInput): Promise<RenderedAsset> {
     background,
     logo,
     verseFont,
-    logoPlate: input.logoStyle === 'logo-light',
+    template: input.template,
+    cta: input.cta ?? undefined,
+    logoPlate: input.template !== 'promo' && input.logoStyle === 'logo-light',
     t: 1,
   });
 
@@ -268,7 +280,9 @@ async function captureCanvas(
         background,
         logo,
         verseFont,
-        logoPlate: input.logoStyle === 'logo-light',
+        template: input.template,
+        cta: input.cta ?? undefined,
+        logoPlate: input.template !== 'promo' && input.logoStyle === 'logo-light',
         t,
       });
       onProgress(t);
@@ -322,7 +336,9 @@ export async function renderVideo(
   cb: VideoRenderCallbacks = {},
 ): Promise<RenderedAsset> {
   await ensureFontsReady();
-  const logo = await loadImage(resolveLogoPath(input.languageId, input.logoStyle)).catch(
+  const logo = await loadImage(
+    resolveLogoPath(input.languageId, effectiveLogoStyle(input)),
+  ).catch(
     () => null,
   );
   const { background, cleanup } = await buildBackground(input);
