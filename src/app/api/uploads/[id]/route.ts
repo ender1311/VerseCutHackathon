@@ -13,11 +13,18 @@ export async function DELETE(
 
   const { id } = await ctx.params;
   const asset = await prisma.sharedAsset.findUnique({ where: { id } });
-  if (!asset) return Response.json({ error: 'Not found' }, { status: 404 });
+  if (!asset) return Response.json({ data: { id } }); // already gone — idempotent
 
+  // Drop the DB row first so a failed Blob delete only leaves an invisible
+  // orphaned file (cheap) rather than a row pointing at a dead Blob.
+  try {
+    await prisma.sharedAsset.delete({ where: { id } });
+  } catch (err) {
+    // P2025 = deleted by a concurrent request; treat delete as idempotent.
+    if ((err as { code?: string }).code !== 'P2025') throw err;
+  }
   await del(asset.fileUrl).catch(() => {
-    /* Blob already gone or unreachable — still drop the DB row. */
+    /* Blob already gone or unreachable. */
   });
-  await prisma.sharedAsset.delete({ where: { id } });
   return Response.json({ data: { id } });
 }

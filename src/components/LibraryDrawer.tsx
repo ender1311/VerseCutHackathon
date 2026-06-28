@@ -22,11 +22,19 @@ export function LibraryDrawer({ open, onClose }: { open: boolean; onClose: () =>
 
   useEffect(() => {
     if (!open) return;
+    let active = true;
     setAds(null);
     setError(null);
     listMyAds()
-      .then(setAds)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'));
+      .then((a) => {
+        if (active) setAds(a);
+      })
+      .catch((e) => {
+        if (active) setError(e instanceof Error ? e.message : 'Failed to load');
+      });
+    return () => {
+      active = false;
+    };
   }, [open]);
 
   if (!open) return null;

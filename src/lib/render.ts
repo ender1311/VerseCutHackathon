@@ -368,10 +368,17 @@ async function captureCanvas(
 }
 
 let ffmpegSingleton: FFmpeg | null = null;
-async function getFFmpeg(onLog?: (m: string) => void): Promise<FFmpeg> {
+// The singleton's listeners are attached once; these hold the current render's
+// callbacks so we don't stack a new listener (closing over a stale cb) on every
+// transcode. See getFFmpeg / renderVideo.
+let currentOnLog: ((m: string) => void) | undefined;
+let currentOnProgress: ((fraction: number) => void) | undefined;
+
+async function getFFmpeg(): Promise<FFmpeg> {
   if (ffmpegSingleton) return ffmpegSingleton;
   const ffmpeg = new FFmpeg();
-  if (onLog) ffmpeg.on('log', ({ message }) => onLog(message));
+  ffmpeg.on('log', ({ message }) => currentOnLog?.(message));
+  ffmpeg.on('progress', ({ progress }) => currentOnProgress?.(Math.min(1, progress)));
 
   // Use the multi-threaded core when the page is cross-origin isolated
   // (SharedArrayBuffer available) — it encodes H.264 far faster. Falls back
@@ -431,8 +438,9 @@ export async function renderVideo(
 
   // Fallback (e.g. Firefox records WebM): transcode WebM -> MP4 via ffmpeg.wasm.
   try {
-    const ffmpeg = await getFFmpeg(cb.onLog);
-    ffmpeg.on('progress', ({ progress }) => cb.onEncode?.(Math.min(1, progress)));
+    const ffmpeg = await getFFmpeg();
+    currentOnLog = cb.onLog;
+    currentOnProgress = (f) => cb.onEncode?.(f);
     await ffmpeg.writeFile('in.webm', await fetchFile(captured));
     const code = await ffmpeg.exec([
       '-i', 'in.webm',
@@ -462,5 +470,8 @@ export async function renderVideo(
       kind: 'video',
       note: 'MP4 encoder unavailable in this browser session — delivered WebM. See README for the backend render option.',
     };
+  } finally {
+    currentOnLog = undefined;
+    currentOnProgress = undefined;
   }
 }

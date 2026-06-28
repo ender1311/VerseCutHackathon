@@ -74,6 +74,7 @@ interface JobSnapshot {
 }
 
 const MAX_VERSE = 176; // Psalm 119
+const MAX_JOBS = 12; // retained render-history depth (older jobs' URLs are revoked)
 
 export function useStudio() {
   const provider = useMemo(() => getBibleProvider(), []);
@@ -130,6 +131,21 @@ export function useStudio() {
   const queueRef = useRef<{ id: string; snap: JobSnapshot }[]>([]);
   const runningRef = useRef(false);
   const jobSeq = useRef(0);
+
+  // Revoke completed-render object URLs when their jobs are evicted or the
+  // studio unmounts — otherwise each render leaks a blob URL for the session.
+  const jobsRef = useRef<Job[]>([]);
+  useEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
+  useEffect(
+    () => () => {
+      for (const j of jobsRef.current) {
+        if (j.asset?.url) URL.revokeObjectURL(j.asset.url);
+      }
+    },
+    [],
+  );
 
   // Load languages once; default to English when available.
   useEffect(() => {
@@ -210,7 +226,21 @@ export function useStudio() {
     if (on) preloadTts();
   }, []);
 
-  const ttsStatus = ttsState();
+  // ttsState() reads module-level mutable vars, so mirror it into React state
+  // and poll while the model loads — otherwise the download progress UI never
+  // updates.
+  const [ttsStatus, setTtsStatus] = useState(() => ttsState());
+  useEffect(() => {
+    if (!voiceover) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      const s = ttsState();
+      setTtsStatus((prev) => (prev.status === s.status && prev.pct === s.pct ? prev : s));
+      if (s.status === 'idle' || s.status === 'loading') timer = setTimeout(tick, 250);
+    };
+    tick();
+    return () => clearTimeout(timer);
+  }, [voiceover]);
 
   const currentBook = books.find((b) => b.id === bookId);
   const maxChapter = currentBook?.chapters ?? 150;
@@ -477,7 +507,18 @@ export function useStudio() {
       language: languageId,
     };
 
-    setJobs((prev) => [job, ...prev]);
+    setJobs((prev) => {
+      const next = [job, ...prev];
+      // Keep a bounded history; revoke evicted jobs' asset URLs so blobs aren't
+      // pinned for the whole session.
+      if (next.length > MAX_JOBS) {
+        for (const dropped of next.slice(MAX_JOBS)) {
+          if (dropped.asset?.url) URL.revokeObjectURL(dropped.asset.url);
+        }
+        return next.slice(0, MAX_JOBS);
+      }
+      return next;
+    });
     setSelectedJobId(id);
     queueRef.current.push({ id, snap });
     void pump();

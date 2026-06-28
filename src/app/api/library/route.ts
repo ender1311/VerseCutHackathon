@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { currentUser } from '@/lib/server/currentUser';
+import { isManagedBlobUrl } from '@/lib/server/blob';
 
 // GET — the signed-in user's saved ads (newest first).
 export async function GET() {
@@ -20,6 +21,9 @@ export async function POST(request: Request) {
   const b = await request.json();
   if (!b?.fileUrl || !b?.format || !b?.aspect) {
     return Response.json({ error: 'fileUrl, format, aspect required' }, { status: 400 });
+  }
+  if (!isManagedBlobUrl(b.fileUrl)) {
+    return Response.json({ error: 'fileUrl must be a managed Blob URL' }, { status: 400 });
   }
   const ad = await prisma.generatedAd.create({
     data: {

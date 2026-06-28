@@ -136,15 +136,20 @@ export function OutputPanel({
   const format = selectedJob?.format ?? studio.format;
   const kindLabel = format === 'video' ? 'VIDEO' : 'IMAGE';
   const asset = selectedJob?.asset ?? null;
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'error'>('idle');
+  // Track which jobs have been saved so re-selecting a saved job doesn't offer a
+  // duplicate save (saving the same asset twice creates a duplicate library row).
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => new Set());
+  const alreadySaved = !!selectedJob && savedJobIds.has(selectedJob.id);
 
-  // Save status is per-job; reset when the user switches the selected job.
+  // Reset only the transient save state when the user switches jobs.
   useEffect(() => {
     setSaveState('idle');
   }, [selectedJob?.id]);
 
   async function saveToLibrary() {
-    if (!asset || !selectedJob) return;
+    if (!asset || !selectedJob || alreadySaved) return;
+    const jobId = selectedJob.id;
     setSaveState('saving');
     try {
       await saveAdToLibrary(asset, {
@@ -155,7 +160,8 @@ export function OutputPanel({
         reference: selectedJob.reference,
         versionAbbr: selectedJob.versionAbbr,
       });
-      setSaveState('saved');
+      setSavedJobIds((prev) => new Set(prev).add(jobId));
+      setSaveState('idle');
     } catch {
       setSaveState('error');
     }
@@ -259,12 +265,12 @@ export function OutputPanel({
                 <button
                   type="button"
                   onClick={saveToLibrary}
-                  disabled={saveState === 'saving' || saveState === 'saved'}
+                  disabled={saveState === 'saving' || alreadySaved}
                   className="flex h-12 items-center justify-center gap-2 rounded-xl border border-line bg-surface px-6 text-[15px] font-semibold text-ink transition hover:bg-line-soft disabled:opacity-60"
                 >
                   {saveState === 'saving' && <Spinner className="text-muted" />}
-                  {saveState === 'saved' && <Check />}
-                  {saveState === 'saved'
+                  {alreadySaved && <Check />}
+                  {alreadySaved
                     ? 'Saved'
                     : saveState === 'error'
                       ? 'Retry save'
