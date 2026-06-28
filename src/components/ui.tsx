@@ -1,5 +1,47 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { ChevronDown, Minus, Plus, UploadCloud, XMark } from './icons';
+
+type ButtonVariant = 'primary' | 'secondary' | 'dark' | 'ghost';
+type ButtonSize = 'sm' | 'md' | 'lg';
+
+const BUTTON_BASE =
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-semibold transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/15';
+
+const BUTTON_SIZES: Record<ButtonSize, string> = {
+  sm: 'h-9 px-3 text-[13px]',
+  md: 'h-11 px-4 text-[14px]',
+  lg: 'h-14 px-6 text-[16px]',
+};
+
+const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
+  primary:
+    'bg-brand text-white shadow-[0_8px_24px_-6px_rgba(254,55,69,0.5)] hover:bg-brand-strong disabled:bg-faint disabled:shadow-none',
+  secondary: 'border border-line bg-surface text-ink hover:bg-line-soft',
+  dark: 'bg-ink text-white hover:bg-black',
+  ghost: 'text-muted hover:bg-line-soft hover:text-ink',
+};
+
+/** The single button primitive for the whole app, so every action looks alike. */
+export function Button({
+  variant = 'secondary',
+  size = 'md',
+  className = '',
+  children,
+  ...props
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+} & ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      className={`${BUTTON_BASE} ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function FieldLabel({
   children,
@@ -165,7 +207,7 @@ export function Segmented<T extends string>({
             key={o.value}
             type="button"
             onClick={() => onChange(o.value)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[14px] font-semibold transition ${
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 text-[14px] font-semibold transition ${
               active
                 ? 'bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,0.12)]'
                 : 'text-muted hover:text-ink'
