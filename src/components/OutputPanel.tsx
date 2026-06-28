@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { config } from '../config';
 import type { Job, Stage, useStudio } from '../lib/useStudio';
 import { saveAdToLibrary } from '../lib/library';
+import { Button } from './ui';
 import { Check, Download, ImageIcon, Spinner, VideoIcon } from './icons';
 
 type Studio = ReturnType<typeof useStudio>;
@@ -255,18 +256,13 @@ export function OutputPanel({
 
             <div className="mt-6 flex flex-col items-center gap-3">
               <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={download}
-                  className="flex h-12 items-center justify-center gap-2 rounded-xl bg-ink px-7 text-[15px] font-semibold text-white transition hover:bg-black active:scale-[0.99]"
-                >
+                <Button variant="dark" onClick={download}>
                   <Download /> Download {asset.ext.toUpperCase()}
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={saveToLibrary}
                   disabled={saveState === 'saving' || alreadySaved}
-                  className="flex h-12 items-center justify-center gap-2 rounded-xl border border-line bg-surface px-6 text-[15px] font-semibold text-ink transition hover:bg-line-soft disabled:opacity-60"
                 >
                   {saveState === 'saving' && <Spinner className="text-muted" />}
                   {alreadySaved && <Check />}
@@ -275,7 +271,7 @@ export function OutputPanel({
                     : saveState === 'error'
                       ? 'Retry save'
                       : 'Save to library'}
-                </button>
+                </Button>
               </div>
               {saveState === 'error' && (
                 <p className="text-[12px] text-brand">Couldn’t save — try again.</p>
@@ -293,13 +289,9 @@ export function OutputPanel({
           <div className="max-w-sm text-center">
             <h2 className="mb-2 text-[18px] font-bold text-ink">Generation failed</h2>
             <p className="mb-5 text-[14px] leading-relaxed text-muted">{selectedJob.error}</p>
-            <button
-              type="button"
-              onClick={studio.generate}
-              className="rounded-xl border border-line bg-surface px-5 py-2.5 text-[14px] font-semibold text-ink transition hover:bg-line-soft"
-            >
+            <Button variant="secondary" onClick={studio.generate}>
               Try again
-            </button>
+            </Button>
           </div>
         )}
       </div>

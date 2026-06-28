@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { useStudio } from '../lib/useStudio';
 import { loadManifest, listImportedVideos, type ImportedVideoEntry, type ManifestEntry } from '../lib/videoLibrary';
 import { Check, Spinner, VideoIcon, XMark } from './icons';
-import { FieldLabel } from './ui';
+import { Button, FieldLabel } from './ui';
 
 type Studio = ReturnType<typeof useStudio>;
 
@@ -105,15 +105,10 @@ export function VideoLibrary({ studio }: { studio: Studio }) {
                 ))}
               </datalist>
             </div>
-            <button
-              type="button"
-              onClick={find}
-              disabled={loading}
-              className="flex h-10 items-center gap-2 rounded-lg bg-ink px-4 text-[14px] font-semibold text-white transition hover:bg-black disabled:opacity-50"
-            >
+            <Button variant="dark" onClick={find} disabled={loading}>
               {loading ? <Spinner className="text-white" /> : null}
               Find
-            </button>
+            </Button>
           </div>
 
           {dates.length > 0 && (

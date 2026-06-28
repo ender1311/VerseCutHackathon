@@ -1,6 +1,6 @@
 import type { useStudio } from '../lib/useStudio';
 import { ImageIcon, Play, Spinner, VideoIcon } from './icons';
-import { FieldLabel, Segmented, SectionHeader, Select, Stepper, UploadField } from './ui';
+import { Button, FieldLabel, Segmented, SectionHeader, Select, Stepper, UploadField } from './ui';
 import { VideoLibrary } from './VideoLibrary';
 import { ImageLibrary } from './ImageLibrary';
 import { SOCIAL_FORMATS } from '../lib/socialFormats';
@@ -301,11 +301,12 @@ export function InputPanel({
           {rendering && ' · renders in the background — keep editing'}
         </p>
 
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          size="lg"
           onClick={studio.generate}
           disabled={!studio.canGenerate}
-          className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-brand text-[16px] font-bold text-white shadow-[0_8px_24px_-6px_rgba(254,55,69,0.6)] transition hover:bg-brand-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-faint disabled:shadow-none"
+          className="w-full"
         >
           {rendering ? (
             <>
@@ -316,7 +317,7 @@ export function InputPanel({
               <Play /> Generate {studio.format === 'video' ? 'video ad' : 'static image'}
             </>
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );
