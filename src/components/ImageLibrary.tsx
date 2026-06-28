@@ -6,12 +6,20 @@ import {
   uploadSharedAsset,
   type SharedAsset,
 } from '../lib/library';
-import { ImageIcon, Spinner, UploadCloud, XMark } from './icons';
-import { FieldLabel } from './ui';
+import { Spinner, UploadCloud, XMark } from './icons';
+import { Button } from './ui';
 
 type Studio = ReturnType<typeof useStudio>;
 
-export function ImageLibrary({ studio }: { studio: Studio }) {
+// Right-panel browser for the team-shared image library. Picking an image sets
+// it as the background and returns to the preview (onPicked).
+export function ImageLibrary({
+  studio,
+  onPicked,
+}: {
+  studio: Studio;
+  onPicked?: () => void;
+}) {
   const [images, setImages] = useState<SharedAsset[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -35,6 +43,7 @@ export function ImageLibrary({ studio }: { studio: Studio }) {
       const asset = await uploadSharedAsset(file);
       setImages((prev) => [asset, ...prev]);
       studio.selectSharedAsset(asset);
+      onPicked?.();
     } catch {
       setError('Upload failed');
     } finally {
@@ -62,8 +71,11 @@ export function ImageLibrary({ studio }: { studio: Studio }) {
   const selected = studio.sharedBg;
 
   return (
-    <div>
-      <FieldLabel hint="Reusable backgrounds">Image library</FieldLabel>
+    <div className="scroll-slim h-full overflow-y-auto px-8 py-6">
+      <div className="mb-4 flex items-baseline justify-between">
+        <h2 className="text-[18px] font-bold text-ink">Image library</h2>
+        <span className="text-[12px] font-medium text-faint">Reusable team backgrounds</span>
+      </div>
 
       <input
         ref={inputRef}
@@ -77,90 +89,65 @@ export function ImageLibrary({ studio }: { studio: Studio }) {
         }}
       />
 
-      {selected && (
-        <div className="mb-2 flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
-            <ImageIcon />
-          </div>
-          <div className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ink">
-            {selected.label}
-          </div>
-          <button
-            type="button"
-            aria-label="Remove background image"
-            onClick={studio.clearSharedBg}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-faint transition hover:bg-line-soft hover:text-ink"
-          >
-            <XMark />
-          </button>
+      <Button
+        variant="secondary"
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        className="mb-4"
+      >
+        {uploading ? <Spinner className="text-muted" /> : <UploadCloud />}
+        {uploading ? 'Uploading…' : 'Add an image (JPG / PNG)'}
+      </Button>
+
+      {error && <p className="mb-3 text-[13px] text-brand">{error}</p>}
+      {loading && (
+        <div className="flex items-center gap-2 text-[14px] text-muted">
+          <Spinner className="text-muted" /> Loading…
         </div>
       )}
 
-      <div className="rounded-xl border border-line bg-surface p-3">
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="mb-3 flex w-full items-center gap-3 rounded-lg border border-dashed border-line p-2.5 text-left transition hover:border-faint disabled:opacity-60"
-        >
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-line-soft text-muted">
-            {uploading ? <Spinner className="text-muted" /> : <UploadCloud />}
-          </div>
-          <div>
-            <div className="text-[13px] font-semibold text-ink">
-              {uploading ? 'Uploading…' : 'Add an image to the library'}
-            </div>
-            <div className="text-[11px] text-faint">JPG / PNG · reusable across the team</div>
-          </div>
-        </button>
+      {!loading && images.length === 0 && (
+        <p className="text-[14px] text-faint">No images yet — add one above.</p>
+      )}
 
-        {error && <p className="mb-2 text-[12px] text-brand">{error}</p>}
-        {loading && (
-          <div className="flex items-center gap-2 text-[13px] text-muted">
-            <Spinner className="text-muted" /> Loading…
-          </div>
-        )}
-
-        {!loading && images.length === 0 && (
-          <p className="text-[12px] text-faint">No images yet — add one above.</p>
-        )}
-
-        {images.length > 0 && (
-          <div className="grid grid-cols-3 gap-2">
-            {images.map((a) => {
-              const active = selected?.url === a.fileUrl;
-              const removing = removingId === a.id;
-              return (
-                <div
-                  key={a.id}
-                  className={`group relative aspect-square overflow-hidden rounded-lg border bg-black transition ${
-                    active ? 'border-brand ring-2 ring-brand/30' : 'border-line hover:border-faint'
-                  }`}
+      {images.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {images.map((a) => {
+            const active = selected?.url === a.fileUrl;
+            const removing = removingId === a.id;
+            return (
+              <div
+                key={a.id}
+                className={`group relative aspect-square overflow-hidden rounded-xl border bg-black transition ${
+                  active ? 'border-brand ring-2 ring-brand/30' : 'border-line hover:border-faint'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    studio.selectSharedAsset(a);
+                    onPicked?.();
+                  }}
+                  title={a.name}
+                  className="block h-full w-full"
                 >
-                  <button
-                    type="button"
-                    onClick={() => studio.selectSharedAsset(a)}
-                    title={a.name}
-                    className="block h-full w-full"
-                  >
-                    <img src={a.fileUrl} alt={a.name} className="h-full w-full object-cover" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Remove ${a.name}`}
-                    title="Remove from library"
-                    onClick={() => onRemove(a)}
-                    disabled={removing}
-                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-md bg-black/55 text-white opacity-0 transition hover:bg-black/80 focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-100"
-                  >
-                    {removing ? <Spinner className="text-white" /> : <XMark width={14} height={14} />}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                  <img src={a.fileUrl} alt={a.name} className="h-full w-full object-cover" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Remove ${a.name}`}
+                  title="Remove from library"
+                  onClick={() => onRemove(a)}
+                  disabled={removing}
+                  className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white opacity-0 transition hover:bg-black/80 focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-100"
+                >
+                  {removing ? <Spinner className="text-white" /> : <XMark width={14} height={14} />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

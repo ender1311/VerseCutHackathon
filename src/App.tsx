@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { config } from './config';
 import { InputPanel } from './components/InputPanel';
-import { OutputPanel } from './components/OutputPanel';
+import { RightPanel, type RightView } from './components/RightPanel';
 import { LibraryDrawer } from './components/LibraryDrawer';
 import { SpaceSwitcher } from './components/SpaceSwitcher';
 import { useStudio } from './lib/useStudio';
@@ -29,6 +29,7 @@ export default function App({
     : (studio.selectedJob?.status ?? 'idle');
   const status = STATUS[statusKey] ?? STATUS.idle;
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [rightView, setRightView] = useState<RightView>('output');
 
   const langIcon = BIBLE_APP_ASSETS['icon-only'][studio.languageCode];
   const headerLogo = langIcon
@@ -80,10 +81,19 @@ export default function App({
       {/* Two-panel body */}
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(420px,468px)_1fr]">
         <aside className="min-h-0 border-r border-line bg-surface">
-          <InputPanel studio={studio} space={space} />
+          <InputPanel
+            studio={studio}
+            space={space}
+            onBrowse={(v) => setRightView(v)}
+          />
         </aside>
         <main className="min-h-0 bg-panel">
-          <OutputPanel studio={studio} space={space} />
+          <RightPanel
+            studio={studio}
+            space={space}
+            view={rightView}
+            setView={setRightView}
+          />
         </main>
       </div>
 

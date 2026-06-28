@@ -1,20 +1,84 @@
 import type { useStudio } from '../lib/useStudio';
-import { ImageIcon, Play, Spinner, VideoIcon } from './icons';
+import type { RightView } from './RightPanel';
+import { ChevronDown, ImageIcon, Play, Spinner, VideoIcon, XMark } from './icons';
 import { Button, FieldLabel, Segmented, SectionHeader, Select, Stepper, UploadField } from './ui';
-import { VideoLibrary } from './VideoLibrary';
-import { ImageLibrary } from './ImageLibrary';
 import { SOCIAL_FORMATS } from '../lib/socialFormats';
 
 type Studio = ReturnType<typeof useStudio>;
 
+function BrowseEntry({
+  icon,
+  title,
+  hint,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  hint: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition hover:border-faint"
+    >
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-line-soft text-muted">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[14px] font-semibold text-ink">{title}</div>
+        <div className="text-[12px] text-faint">{hint}</div>
+      </div>
+      <ChevronDown className="-rotate-90 text-faint" />
+    </button>
+  );
+}
+
+function SelectedChip({
+  icon,
+  title,
+  subtitle,
+  onClear,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  onClear: () => void;
+}) {
+  return (
+    <div className="mb-2 flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[14px] font-semibold text-ink">{title}</div>
+        <div className="truncate text-[12px] text-faint">{subtitle}</div>
+      </div>
+      <button
+        type="button"
+        aria-label="Clear selection"
+        onClick={onClear}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-faint transition hover:bg-line-soft hover:text-ink"
+      >
+        <XMark />
+      </button>
+    </div>
+  );
+}
+
 export function InputPanel({
   studio,
   space = 'ads',
+  onBrowse,
 }: {
   studio: Studio;
   space?: 'ads' | 'social' | 'product';
+  onBrowse: (view: RightView) => void;
 }) {
   const rendering = studio.isRendering;
+  const libVideo = studio.libraryVideo;
+  const sharedImg = studio.sharedBg?.kind === 'image' ? studio.sharedBg : null;
 
   return (
     <div className="flex h-full flex-col">
@@ -152,11 +216,39 @@ export function InputPanel({
         </div>
 
         <div className="mb-6">
-          <VideoLibrary studio={studio} />
+          <FieldLabel hint="YouVersion · by date">Video library</FieldLabel>
+          {libVideo && (
+            <SelectedChip
+              icon={<VideoIcon />}
+              title={libVideo.entry.title}
+              subtitle={libVideo.entry.language.toUpperCase()}
+              onClear={studio.clearLibraryVideo}
+            />
+          )}
+          <BrowseEntry
+            icon={<VideoIcon />}
+            title="Browse YouVersion videos"
+            hint="Pick a Guided Scripture video by date"
+            onClick={() => onBrowse('videos')}
+          />
         </div>
 
         <div className="mb-6">
-          <ImageLibrary studio={studio} />
+          <FieldLabel hint="Reusable backgrounds">Image library</FieldLabel>
+          {sharedImg && (
+            <SelectedChip
+              icon={<ImageIcon />}
+              title={sharedImg.label}
+              subtitle="Shared background"
+              onClear={studio.clearSharedBg}
+            />
+          )}
+          <BrowseEntry
+            icon={<ImageIcon />}
+            title="Browse the image library"
+            hint="Reusable team backgrounds · upload new"
+            onClick={() => onBrowse('images')}
+          />
         </div>
 
         {studio.format === 'video' && (
