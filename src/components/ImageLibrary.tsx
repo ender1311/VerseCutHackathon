@@ -7,9 +7,10 @@ import {
   type SharedAsset,
 } from '../lib/library';
 import { Play, Spinner, UploadCloud, XMark } from './icons';
-import { Button } from './ui';
+import { Button, Segmented } from './ui';
 
 type Studio = ReturnType<typeof useStudio>;
+type KindFilter = 'all' | 'image' | 'video';
 
 // Right-panel browser for the team-shared background library (images + videos).
 // Picking an asset sets it as the background and returns to the preview (onPicked).
@@ -25,6 +26,7 @@ export function ImageLibrary({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<KindFilter>('all');
   const inputRef = useRef<HTMLInputElement>(null);
 
   function refresh() {
@@ -69,6 +71,9 @@ export function ImageLibrary({
   }
 
   const selected = studio.sharedBg;
+  const imageCount = assets.filter((a) => a.kind === 'image').length;
+  const videoCount = assets.filter((a) => a.kind === 'video').length;
+  const visible = filter === 'all' ? assets : assets.filter((a) => a.kind === filter);
 
   return (
     <div className="scroll-slim h-full overflow-y-auto px-8 py-6">
@@ -111,8 +116,26 @@ export function ImageLibrary({
       )}
 
       {assets.length > 0 && (
+        <div className="mb-4 max-w-[360px]">
+          <Segmented
+            value={filter}
+            onChange={(v) => setFilter(v as KindFilter)}
+            options={[
+              { value: 'all', label: `All (${assets.length})` },
+              { value: 'video', label: `Videos (${videoCount})` },
+              { value: 'image', label: `Images (${imageCount})` },
+            ]}
+          />
+        </div>
+      )}
+
+      {assets.length > 0 && visible.length === 0 && (
+        <p className="text-[14px] text-faint">No {filter}s in the library.</p>
+      )}
+
+      {visible.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {assets.map((a) => {
+          {visible.map((a) => {
             const active = selected?.url === a.fileUrl;
             const removing = removingId === a.id;
             const isVideo = a.kind === 'video';
