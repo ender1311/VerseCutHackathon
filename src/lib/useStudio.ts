@@ -46,6 +46,10 @@ export interface Job {
   reference: string | null;
   versionAbbr: string | null;
   language: string;
+  /** Build-time estimate (seconds) captured when the job was queued. */
+  estimateSec: number;
+  /** Epoch ms when the render actually started (null while queued). */
+  startedAt: number | null;
 }
 
 interface JobSnapshot {
@@ -355,7 +359,7 @@ export function useStudio() {
 
   const runJob = useCallback(
     async (id: string, snap: JobSnapshot) => {
-      patchJob(id, { status: 'running' });
+      patchJob(id, { status: 'running', startedAt: Date.now() });
       patchJobStage(id, 'fetch', { status: 'active' });
       try {
         const passage = await provider.fetchPassage({
@@ -448,6 +452,20 @@ export function useStudio() {
     }
   }, [runJob]);
 
+  // Rough build-time estimate (seconds) shown before Generate. Video capture is
+  // real-time, so duration dominates; voiceover adds a one-time model download
+  // (cached after first run) plus synthesis.
+  const estimateSec = useMemo(() => {
+    if (format === 'image') return 3;
+    const useVoiceover = voiceover && !!voiceId && voiceSupportedForLang;
+    let s = durationSec + 3; // real-time capture + encode
+    if (useVoiceover) {
+      if (ttsStatus.status !== 'ready') s += hasWebGPU() ? 20 : 35; // model download/warmup
+      s += hasWebGPU() ? 6 : 12; // synthesis
+    }
+    return Math.round(s);
+  }, [format, durationSec, voiceover, voiceId, voiceSupportedForLang, ttsStatus.status]);
+
   const generate = useCallback(() => {
     if (!canGenerate) return;
     const id = `job-${(jobSeq.current += 1)}`;
@@ -509,6 +527,8 @@ export function useStudio() {
       reference: null,
       versionAbbr: null,
       language: languageId,
+      estimateSec,
+      startedAt: null,
     };
 
     setJobs((prev) => {
@@ -552,6 +572,7 @@ export function useStudio() {
     voiceover,
     voiceId,
     voiceSupportedForLang,
+    estimateSec,
     pump,
   ]);
 
@@ -560,20 +581,6 @@ export function useStudio() {
     [jobs, selectedJobId],
   );
   const isRendering = jobs.some((j) => j.status === 'running' || j.status === 'queued');
-
-  // Rough build-time estimate (seconds) shown before Generate. Video capture is
-  // real-time, so duration dominates; voiceover adds a one-time model download
-  // (cached after first run) plus synthesis.
-  const estimateSec = useMemo(() => {
-    if (format === 'image') return 3;
-    const useVoiceover = voiceover && !!voiceId && voiceSupportedForLang;
-    let s = durationSec + 3; // real-time capture + encode
-    if (useVoiceover) {
-      if (ttsStatus.status !== 'ready') s += hasWebGPU() ? 20 : 35; // model download/warmup
-      s += hasWebGPU() ? 6 : 12; // synthesis
-    }
-    return Math.round(s);
-  }, [format, durationSec, voiceover, voiceId, voiceSupportedForLang, ttsStatus.status]);
 
   return {
     // data

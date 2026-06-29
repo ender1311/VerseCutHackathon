@@ -12,6 +12,60 @@ function jobProgress(job: Job): number | null {
   return active?.progress != null ? Math.round(active.progress * 100) : null;
 }
 
+/** Overall 0..1 completion across all stages (done = 1, active = its fraction). */
+function overallFraction(job: Job): number {
+  const n = job.stages.length;
+  if (!n) return 0;
+  let acc = 0;
+  for (const s of job.stages) {
+    if (s.status === 'done') acc += 1;
+    else if (s.status === 'active') acc += s.progress ?? 0;
+  }
+  return Math.min(1, acc / n);
+}
+
+/** Overall progress bar + elapsed/estimate readout for an in-flight render. */
+function RenderProgress({ job }: { job: Job }) {
+  const [now, setNow] = useState(() => Date.now());
+  const running = job.status === 'running';
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [running]);
+
+  const frac = overallFraction(job);
+  const elapsed = job.startedAt ? Math.max(0, (now - job.startedAt) / 1000) : 0;
+  // Blend the real stage progress with elapsed-vs-estimate so the bar keeps
+  // creeping during long single stages (e.g. real-time video capture) without
+  // ever reaching 100% before the render actually finishes.
+  const timeFrac = job.estimateSec > 0 ? elapsed / job.estimateSec : 0;
+  const display = Math.min(0.99, Math.max(frac, running ? Math.min(timeFrac, 0.95) : 0));
+  const pct = Math.round(display * 100);
+  const remaining = Math.max(0, Math.ceil(job.estimateSec - elapsed));
+
+  return (
+    <div className="mb-3">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-line-soft">
+        <div
+          className="h-full rounded-full bg-brand transition-[width] duration-300 ease-out"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="mt-1.5 flex justify-between text-[12px] tabular-nums text-faint">
+        <span>{pct}%</span>
+        <span>
+          {running
+            ? remaining > 0
+              ? `~${remaining}s left`
+              : 'almost done…'
+            : `~${job.estimateSec}s`}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function JobChip({
   job,
   selected,
@@ -225,10 +279,11 @@ export function OutputPanel({
             </PreviewFrame>
             <div className="mt-7 w-full max-w-xs rounded-2xl border border-line bg-surface p-4">
               {selectedJob.status === 'queued' && (
-                <p className="mb-1 text-center text-[13px] font-semibold text-muted">
+                <p className="mb-3 text-center text-[13px] font-semibold text-muted">
                   Queued — waiting for the current render…
                 </p>
               )}
+              {selectedJob.status === 'running' && <RenderProgress job={selectedJob} />}
               {selectedJob.stages.map((s) => (
                 <StageRow key={s.id} stage={s} />
               ))}
