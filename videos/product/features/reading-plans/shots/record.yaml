@@ -1,0 +1,26 @@
+appId: tv.lifechurch.bible
+name: Reading Plans record (the on-screen journey — recorded)
+# Starts on the plan detail hero (from prep). Shows: hero → Sample day view →
+# Devotional reading → slow scroll. All viewable without an account.
+---
+- waitForAnimationToEnd:
+    timeout: 1200
+- tapOn: "Sample"
+- extendedWaitUntil:
+    visible: "Devotional"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 1600
+- tapOn: "Devotional"
+- waitForAnimationToEnd:
+    timeout: 2600
+- swipe:
+    direction: UP
+    duration: 1600
+- waitForAnimationToEnd:
+    timeout: 1200
+- swipe:
+    direction: UP
+    duration: 1600
+- waitForAnimationToEnd:
+    timeout: 1600

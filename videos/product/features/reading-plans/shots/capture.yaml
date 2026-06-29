@@ -1,0 +1,52 @@
+appId: tv.lifechurch.bible
+name: Reading Plans capture (no auth — browse, open plan, sample)
+# Showcases the Plans feature without signing in. Recorded by sim.mjs.
+# Optional ${LANG} sets the UI language for localized captures.
+---
+- launchApp:
+    arguments:
+      environment: production
+      UITesting: true
+- runFlow:
+    when:
+      visible: "Allow Paste"
+    commands:
+      - tapOn: "Allow Paste"
+# Dismiss any auth/upsell sheet that may be lingering.
+- tapOn:
+    id: "DISMISS_BUTTON"
+    optional: true
+# 1) Find Plans (browse)
+- openLink: youversion://reading-plans
+- waitForAnimationToEnd:
+    timeout: 4000
+- swipe:
+    direction: UP
+    duration: 1200
+- waitForAnimationToEnd:
+    timeout: 1500
+- swipe:
+    direction: UP
+    duration: 1200
+- waitForAnimationToEnd:
+    timeout: 1500
+# 2) Open a specific plan's detail
+- openLink: youversion://reading-plans/1609
+- waitForAnimationToEnd:
+    timeout: 3500
+- swipe:
+    direction: UP
+    duration: 1400
+- waitForAnimationToEnd:
+    timeout: 1500
+# 3) Sample the plan (no account needed)
+- tapOn:
+    text: "Sample"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 3500
+- swipe:
+    direction: UP
+    duration: 1400
+- waitForAnimationToEnd:
+    timeout: 2000

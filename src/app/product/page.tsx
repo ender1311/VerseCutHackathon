@@ -1,5 +1,6 @@
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { SpaceShell } from '../../components/SpaceShell';
+import { ProductBuilder } from '../../components/ProductBuilder';
 
 const CAPABILITIES = [
   { title: 'Multi-scene story', body: 'Sequence several verse/message beats into one film.' },
@@ -32,7 +33,7 @@ export default async function ProductMarketingPage() {
             </div>
           ))}
         </div>
-        <p className="mt-8 text-[13px] text-faint">Builder coming next.</p>
+        <ProductBuilder />
       </div>
     </SpaceShell>
   );
