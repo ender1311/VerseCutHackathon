@@ -4,6 +4,7 @@ import { SOCIAL_FORMAT_BY_ID } from './socialFormats';
 import { synthesize, preloadTts, ttsState, hasWebGPU } from './tts';
 import { defaultVoice, voiceSupported, VOICES } from './voices';
 import { ASPECT_DIMENSIONS, config, type AspectRatio, type OutputFormat } from '../config';
+import { GRADIENTS, DEFAULT_GRADIENT_ID } from './gradients';
 import { getBibleProvider, type BibleVersion, type Book, type Language } from './bible';
 import { renderImage, renderVideo, type RenderedAsset } from './render';
 import type { LogoStyle } from './iconCatalog';
@@ -70,6 +71,7 @@ interface JobSnapshot {
     template: 'classic' | 'promo';
     cta: string;
     musicFile: File | null;
+    gradientId: string;
   };
 }
 
@@ -111,6 +113,7 @@ export function useStudio() {
   const [durationSec, setDurationSec] = useState<number>(config.output.videoDurationSec);
   const [logoStyle, setLogoStyle] = useState<LogoStyle>(config.brand.defaultLogoStyle);
   const [musicFile, setMusicFile] = useState<File | null>(null);
+  const [gradientId, setGradientId] = useState<string>(DEFAULT_GRADIENT_ID);
   const [voiceover, setVoiceoverState] = useState(false);
   const [voiceId, setVoiceId] = useState<string | null>(null);
   const voiceTouched = useRef(false);
@@ -489,6 +492,7 @@ export function useStudio() {
         template,
         cta,
         musicFile,
+        gradientId,
       },
     };
 
@@ -544,6 +548,7 @@ export function useStudio() {
     cta,
     durationSec,
     musicFile,
+    gradientId,
     voiceover,
     voiceId,
     voiceSupportedForLang,
@@ -624,6 +629,10 @@ export function useStudio() {
     setCta,
     musicFile,
     setMusicFile,
+    // background gradient
+    gradients: GRADIENTS,
+    gradientId,
+    setGradientId,
     // voiceover
     voiceover,
     setVoiceover,

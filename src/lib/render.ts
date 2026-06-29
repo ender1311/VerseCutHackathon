@@ -2,6 +2,7 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { config, type AspectRatio } from '../config';
 import { composeFrame, ensureFontsReady, type Background } from './compositor';
+import { resolveGradient } from './gradients';
 import type { Passage } from './bible';
 import { BIBLE_APP_ASSETS, type LogoStyle } from './iconCatalog';
 import { loadVerseFont } from './fonts';
@@ -33,6 +34,8 @@ export interface RenderInput {
   musicVolume?: number;
   /** Voiceover narration audio (from in-browser Kokoro TTS) to mix in. */
   narrationBlob?: Blob | null;
+  /** Background gradient preset id (used when no image/video background). */
+  gradientId?: string | null;
 }
 
 /** The promo template uses the horizontal light lockup; classic uses the chosen style. */
@@ -104,7 +107,10 @@ async function buildBackground(
     const video = await loadVideoFromSrc(input.videoUrl);
     return { background: { type: 'video', video }, cleanup: () => {} };
   }
-  return { background: { type: 'gradient' }, cleanup: () => {} };
+  return {
+    background: { type: 'gradient', preset: resolveGradient(input.gradientId) },
+    cleanup: () => {},
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -2,10 +2,12 @@
 // Draws: background (cover-fit image/video or generated gradient) → contrast
 // scrim → verse text → reference/version → bottom-left logo.
 
+import { resolveGradient, type GradientPreset } from './gradients';
+
 export type Background =
   | { type: 'image'; image: CanvasImageSource }
   | { type: 'video'; video: HTMLVideoElement }
-  | { type: 'gradient' };
+  | { type: 'gradient'; preset?: GradientPreset };
 
 export interface VerseFontInfo {
   family: string;
@@ -56,15 +58,17 @@ function drawGradientBackground(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
+  preset?: GradientPreset,
 ) {
+  const p = resolveGradient(preset?.id);
   const g = ctx.createLinearGradient(0, 0, w, h);
-  g.addColorStop(0, '#2a0a10');
-  g.addColorStop(0.5, '#3d0d18');
-  g.addColorStop(1, '#120406');
+  g.addColorStop(0, p.from);
+  g.addColorStop(0.5, p.via);
+  g.addColorStop(1, p.to);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
 
-  // Soft brand glow toward the top.
+  // Soft accent glow toward the top.
   const radial = ctx.createRadialGradient(
     w * 0.5,
     h * 0.18,
@@ -73,8 +77,8 @@ function drawGradientBackground(
     h * 0.18,
     Math.max(w, h) * 0.8,
   );
-  radial.addColorStop(0, 'rgba(254,55,69,0.32)');
-  radial.addColorStop(1, 'rgba(254,55,69,0)');
+  radial.addColorStop(0, p.glow);
+  radial.addColorStop(1, p.glow.replace(/,[^,]*\)$/, ',0)'));
   ctx.fillStyle = radial;
   ctx.fillRect(0, 0, w, h);
 }
@@ -166,7 +170,7 @@ export function composeFrame(
 
   // 1. Background
   if (background.type === 'gradient') {
-    drawGradientBackground(ctx, w, h);
+    drawGradientBackground(ctx, w, h, background.preset);
   } else if (background.type === 'image') {
     const img = background.image as HTMLImageElement;
     const zoom = 1.04 + 0.06 * t; // slow Ken Burns

@@ -67,6 +67,34 @@ function SelectedChip({
   );
 }
 
+function GradientPicker({ studio }: { studio: Studio }) {
+  return (
+    <div className="grid grid-cols-8 gap-2">
+      {studio.gradients.map((g) => {
+        const selected = studio.gradientId === g.id;
+        return (
+          <button
+            key={g.id}
+            type="button"
+            title={g.name}
+            aria-label={g.name}
+            aria-pressed={selected}
+            onClick={() => studio.setGradientId(g.id)}
+            className={`aspect-square rounded-lg border transition ${
+              selected
+                ? 'border-brand ring-2 ring-brand/40'
+                : 'border-line hover:border-faint'
+            }`}
+            style={{
+              backgroundImage: `linear-gradient(135deg, ${g.from} 0%, ${g.via} 50%, ${g.to} 100%)`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export function InputPanel({
   studio,
   space = 'ads',
@@ -79,6 +107,8 @@ export function InputPanel({
   const rendering = studio.isRendering;
   const libVideo = studio.libraryVideo;
   const sharedImg = studio.sharedBg?.kind === 'image' ? studio.sharedBg : null;
+  const hasBgSource =
+    !!studio.imageFile || !!studio.videoFile || !!studio.libraryVideo || !!studio.sharedBg;
 
   return (
     <div className="flex h-full flex-col">
@@ -250,6 +280,15 @@ export function InputPanel({
             onClick={() => onBrowse('images')}
           />
         </div>
+
+        {!hasBgSource && (
+          <div className="mb-6">
+            <FieldLabel hint="Used when no image or video is set">
+              Background gradient
+            </FieldLabel>
+            <GradientPicker studio={studio} />
+          </div>
+        )}
 
         {studio.format === 'video' && (
           <div className="mb-6">

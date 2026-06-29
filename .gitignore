@@ -18,4 +18,9 @@ videos/**/out/
 videos/**/narration.wav
 videos/**/timings.js
 videos/**/.tts-tmp/
+# Product-marketing pipeline: local creds + capture/render work artifacts
+videos/product/.pm-creds.env
+videos/product/work/
+videos/product/out/
+.pm-probe/
 .env*
