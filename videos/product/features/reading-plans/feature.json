@@ -1,0 +1,59 @@
+{
+  "id": "reading-plans",
+  "title": "Reading Plans",
+  "subtitle": "Grow a daily Bible habit",
+  "cta": "Download the Bible App",
+  "env": "production",
+  "auth": false,
+  "capture": {
+    "prep": "features/reading-plans/shots/prep.yaml",
+    "record": "features/reading-plans/shots/record.yaml"
+  },
+  "music": null,
+  "voices": {
+    "en": "af_heart",
+    "es": "ef_dora",
+    "pt": "pf_dora",
+    "fr": "ff_siwis"
+  },
+  "scripts": {
+    "short": {
+      "en": [
+        { "text": "Build a daily Bible habit with Reading Plans.", "caption": "Build a daily Bible habit" },
+        { "text": "Hundreds of guided plans on any topic.", "caption": "Hundreds of guided plans" },
+        { "text": "Start one free in the Bible App.", "caption": "Start one — free" }
+      ],
+      "es": [
+        { "text": "Crea el hábito diario de leer la Biblia con los Planes.", "caption": "Un hábito diario con la Biblia" },
+        { "text": "Cientos de planes guiados sobre cualquier tema.", "caption": "Cientos de planes guiados" },
+        { "text": "Comienza uno gratis en la App de la Biblia.", "caption": "Empieza gratis" }
+      ]
+    },
+    "long": {
+      "en": [
+        { "text": "Meet Reading Plans in the YouVersion Bible App.", "caption": "Meet Reading Plans" },
+        { "text": "There are thousands of guided plans, for whatever you're walking through.", "caption": "Thousands of guided plans" },
+        { "text": "Grace. Anxiety. Marriage. Hope. Prayer. Purpose.", "caption": "On every topic" },
+        { "text": "Each plan walks you through Scripture, day by day.", "caption": "Guided day by day" },
+        { "text": "Read the passage, then a short devotional written just for it.", "caption": "Verse plus devotional" },
+        { "text": "Press play to listen to the audio Bible while you follow along.", "caption": "Listen and follow along" },
+        { "text": "Go at your own pace. A few minutes a day is enough.", "caption": "A few minutes a day" },
+        { "text": "Invite friends to read together and keep each other encouraged.", "caption": "Read with friends" },
+        { "text": "Track your progress and build a habit that lasts.", "caption": "Build a lasting habit" },
+        { "text": "Start your first plan free. Download the Bible App today.", "caption": "Start free today" }
+      ],
+      "es": [
+        { "text": "Descubre los Planes de lectura en la App de la Biblia de YouVersion.", "caption": "Descubre los Planes" },
+        { "text": "Hay miles de planes guiados, para todo lo que estás viviendo.", "caption": "Miles de planes guiados" },
+        { "text": "Gracia. Ansiedad. Matrimonio. Esperanza. Oración. Propósito.", "caption": "Sobre cada tema" },
+        { "text": "Cada plan te lleva por las Escrituras, día a día.", "caption": "Guiado día a día" },
+        { "text": "Lee el pasaje y luego un breve devocional escrito para él.", "caption": "Versículo y devocional" },
+        { "text": "Toca play para escuchar la Biblia en audio mientras sigues la lectura.", "caption": "Escucha y sigue la lectura" },
+        { "text": "Avanza a tu propio ritmo. Unos minutos al día son suficientes.", "caption": "Unos minutos al día" },
+        { "text": "Invita a tus amigos a leer juntos y animarse mutuamente.", "caption": "Lean juntos" },
+        { "text": "Sigue tu progreso y crea un hábito que perdure.", "caption": "Crea un hábito duradero" },
+        { "text": "Comienza tu primer plan gratis. Descarga la App de la Biblia hoy.", "caption": "Empieza gratis hoy" }
+      ]
+    }
+  }
+}

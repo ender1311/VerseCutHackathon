@@ -1,0 +1,53 @@
+appId: tv.lifechurch.bible
+name: Login (marketing capture)
+# Signs into a clean, onboarded state with the QA account. Credentials come
+# from env (USER_EMAIL / USER_PASSWORD) — never hardcoded here.
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - clearState
+      - clearKeychain
+      - launchApp:
+          arguments:
+            environment: ${APP_ENV}
+            UITesting: true
+      - runFlow:
+          when:
+            visible: "Allow Paste"
+          commands:
+            - tapOn: "Allow Paste"
+      - runFlow:
+          when:
+            visible: "Seek God"
+          commands:
+            - tapOn:
+                id: "DISMISS_BUTTON"
+      - runFlow:
+          when:
+            visible: "Enable Verse of the Day?"
+          commands:
+            - tapOn: "Not Now"
+- tapOn:
+    id: profile_tab
+- tapOn: "Sign In"
+- tapOn:
+    id: email
+- tapOn: "Email"
+- inputText:
+    text: ${USER_EMAIL}
+    label: Input email
+- tapOn: "Password"
+- inputText:
+    text: ${USER_PASSWORD}
+    label: Input password
+- hideKeyboard
+- tapOn: "Continue"
+- waitForAnimationToEnd:
+    timeout: 10000
+- runFlow:
+    when:
+      visible: "Not Now"
+    commands:
+      - tapOn: "Not Now"
+- takeScreenshot: /tmp/pm-probe/login-result

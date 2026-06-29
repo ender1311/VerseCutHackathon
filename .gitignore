@@ -22,5 +22,8 @@ videos/**/.tts-tmp/
 videos/product/.pm-creds.env
 videos/product/work/
 videos/product/out/
+videos/product/.pm-probe*
+# Downloaded reference media (large; lives in the prod Blob library, not git)
+videos/product/reference/
 .pm-probe/
 .env*

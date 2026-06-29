@@ -1,0 +1,22 @@
+appId: tv.lifechurch.bible
+name: Reading Plans prep (navigate to plan detail — not recorded)
+# ${LANG} optional UI locale for localized captures.
+---
+- launchApp:
+    arguments:
+      environment: production
+- runFlow:
+    when:
+      visible: "Allow Paste"
+    commands:
+      - tapOn: "Allow Paste"
+- extendedWaitUntil:
+    visible:
+      id: plans_tab
+    timeout: 25000
+- openLink: youversion://reading-plans/1609
+- extendedWaitUntil:
+    visible: "Sample"
+    timeout: 25000
+- waitForAnimationToEnd:
+    timeout: 1500
