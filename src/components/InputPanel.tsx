@@ -430,8 +430,8 @@ export function InputPanel({
             />
           </div>
         )}
-        <div className="mb-4 flex gap-6">
-          <div className="flex-1">
+        <div className="mb-4 flex flex-wrap gap-x-6 gap-y-4">
+          <div className="min-w-[170px] flex-1">
             <div className="mb-2 text-[15px] font-semibold text-ink">Output format</div>
             <Segmented
               value={studio.format}
@@ -456,7 +456,7 @@ export function InputPanel({
               ]}
             />
           </div>
-          <div className="w-[210px]">
+          <div className="min-w-[170px] flex-1">
             <div className="mb-2 text-[15px] font-semibold text-ink">Aspect ratio</div>
             <Segmented
               value={studio.aspect}
