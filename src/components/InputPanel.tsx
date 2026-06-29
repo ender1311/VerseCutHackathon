@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { useStudio } from '../lib/useStudio';
 import type { RightView } from './RightPanel';
 import { ChevronDown, ImageIcon, Play, Spinner, VideoIcon, XMark } from './icons';
@@ -68,29 +69,55 @@ function SelectedChip({
 }
 
 function GradientPicker({ studio }: { studio: Studio }) {
+  const [open, setOpen] = useState(false);
+  const current =
+    studio.gradients.find((g) => g.id === studio.gradientId) ?? studio.gradients[0];
+  const swatch = (g: { from: string; via: string; to: string }) =>
+    `linear-gradient(135deg, ${g.from} 0%, ${g.via} 50%, ${g.to} 100%)`;
+
   return (
-    <div className="grid grid-cols-8 gap-2">
-      {studio.gradients.map((g) => {
-        const selected = studio.gradientId === g.id;
-        return (
-          <button
-            key={g.id}
-            type="button"
-            title={g.name}
-            aria-label={g.name}
-            aria-pressed={selected}
-            onClick={() => studio.setGradientId(g.id)}
-            className={`aspect-square rounded-lg border transition ${
-              selected
-                ? 'border-brand ring-2 ring-brand/40'
-                : 'border-line hover:border-faint'
-            }`}
-            style={{
-              backgroundImage: `linear-gradient(135deg, ${g.from} 0%, ${g.via} 50%, ${g.to} 100%)`,
-            }}
-          />
-        );
-      })}
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition hover:border-faint"
+      >
+        <span
+          className="h-9 w-9 shrink-0 rounded-lg border border-line"
+          style={{ backgroundImage: swatch(current) }}
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] font-semibold text-ink">
+            Background gradient
+          </span>
+          <span className="block text-[12px] text-faint">{current.name}</span>
+        </span>
+        <ChevronDown className={`text-faint transition ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="mt-3 grid grid-cols-8 gap-2">
+          {studio.gradients.map((g) => {
+            const selected = studio.gradientId === g.id;
+            return (
+              <button
+                key={g.id}
+                type="button"
+                title={g.name}
+                aria-label={g.name}
+                aria-pressed={selected}
+                onClick={() => studio.setGradientId(g.id)}
+                className={`aspect-square rounded-lg border transition ${
+                  selected
+                    ? 'border-brand ring-2 ring-brand/40'
+                    : 'border-line hover:border-faint'
+                }`}
+                style={{ backgroundImage: swatch(g) }}
+              />
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -283,9 +310,6 @@ export function InputPanel({
 
         {!hasBgSource && (
           <div className="mb-6">
-            <FieldLabel hint="Used when no image or video is set">
-              Background gradient
-            </FieldLabel>
             <GradientPicker studio={studio} />
           </div>
         )}
