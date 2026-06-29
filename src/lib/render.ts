@@ -5,6 +5,7 @@ import { composeFrame, ensureFontsReady, type Background } from './compositor';
 import { resolveGradient } from './gradients';
 import type { Passage } from './bible';
 import { BIBLE_APP_ASSETS, type LogoStyle } from './iconCatalog';
+import { resolveLogoFile } from './logoAssets';
 import { loadVerseFont } from './fonts';
 
 export interface RenderInput {
@@ -48,8 +49,10 @@ function effectiveLogoStyle(input: RenderInput): LogoStyle {
 function resolveLogoPath(languageId?: string, style?: LogoStyle): string {
   if (!config.brand.logoByLanguage || !languageId) return config.brand.logoPath;
   const s: LogoStyle = style ?? config.brand.defaultLogoStyle;
-  const cat = BIBLE_APP_ASSETS[s] ?? BIBLE_APP_ASSETS['icon-only'];
-  const file = cat[languageId] || cat[languageId.split('-')[0]] || cat['en'];
+  const file =
+    resolveLogoFile(s, languageId) ??
+    BIBLE_APP_ASSETS[s]?.['en'] ??
+    BIBLE_APP_ASSETS['icon-only']['en'];
   return file ? `${config.brand.logoBaseDir}/${s}/${file}` : config.brand.logoPath;
 }
 

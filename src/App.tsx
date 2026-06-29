@@ -8,7 +8,7 @@ import { LibraryDrawer } from './components/LibraryDrawer';
 import { SpaceSwitcher } from './components/SpaceSwitcher';
 import { PanelResizer } from './components/PanelResizer';
 import { useStudio } from './lib/useStudio';
-import { BIBLE_APP_ASSETS } from './lib/iconCatalog';
+import { resolveLogoFile } from './lib/logoAssets';
 import { DEFAULT_PANEL_WIDTH, readStoredWidth, writeStoredWidth } from './lib/panelLayout';
 
 const STATUS: Record<string, { label: string; dot: string }> = {
@@ -40,7 +40,7 @@ export default function App({
     if (stored !== null) setLeftWidth(stored);
   }, []);
 
-  const langIcon = BIBLE_APP_ASSETS['icon-only'][studio.languageCode];
+  const langIcon = resolveLogoFile('icon-only', studio.languageCode);
   const headerLogo = langIcon
     ? `${config.brand.logoBaseDir}/icon-only/${langIcon}`
     : config.brand.logoPath;
