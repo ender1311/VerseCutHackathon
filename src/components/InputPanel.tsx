@@ -141,7 +141,7 @@ export function InputPanel({
 }) {
   const rendering = studio.isRendering;
   const libVideo = studio.libraryVideo;
-  const sharedImg = studio.sharedBg?.kind === 'image' ? studio.sharedBg : null;
+  const sharedBg = studio.sharedBg;
   const hasBgSource =
     !!studio.imageFile || !!studio.videoFile || !!studio.libraryVideo || !!studio.sharedBg;
 
@@ -307,19 +307,19 @@ export function InputPanel({
             </div>
 
             <div>
-              <FieldLabel hint="Reusable backgrounds">Image library</FieldLabel>
-              {sharedImg && (
+              <FieldLabel hint="Reusable backgrounds">Background library</FieldLabel>
+              {sharedBg && (
                 <SelectedChip
-                  icon={<ImageIcon />}
-                  title={sharedImg.label}
-                  subtitle="Shared background"
+                  icon={sharedBg.kind === 'video' ? <VideoIcon /> : <ImageIcon />}
+                  title={sharedBg.label}
+                  subtitle={sharedBg.kind === 'video' ? 'Shared video background' : 'Shared background'}
                   onClear={studio.clearSharedBg}
                 />
               )}
               <BrowseEntry
                 icon={<ImageIcon />}
-                title="Browse the image library"
-                hint="Reusable team backgrounds · upload new"
+                title="Browse the background library"
+                hint="Reusable team backgrounds · images + video"
                 onClick={() => onBrowse('images')}
               />
             </div>

@@ -6,13 +6,13 @@ import {
   uploadSharedAsset,
   type SharedAsset,
 } from '../lib/library';
-import { Spinner, UploadCloud, XMark } from './icons';
+import { Play, Spinner, UploadCloud, XMark } from './icons';
 import { Button } from './ui';
 
 type Studio = ReturnType<typeof useStudio>;
 
-// Right-panel browser for the team-shared image library. Picking an image sets
-// it as the background and returns to the preview (onPicked).
+// Right-panel browser for the team-shared background library (images + videos).
+// Picking an asset sets it as the background and returns to the preview (onPicked).
 export function ImageLibrary({
   studio,
   onPicked,
@@ -20,7 +20,7 @@ export function ImageLibrary({
   studio: Studio;
   onPicked?: () => void;
 }) {
-  const [images, setImages] = useState<SharedAsset[]>([]);
+  const [assets, setAssets] = useState<SharedAsset[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,8 +30,8 @@ export function ImageLibrary({
   function refresh() {
     setLoading(true);
     listSharedAssets()
-      .then((all) => setImages(all.filter((a) => a.kind === 'image')))
-      .catch(() => setError('Could not load the image library'))
+      .then((all) => setAssets(all))
+      .catch(() => setError('Could not load the background library'))
       .finally(() => setLoading(false));
   }
   useEffect(refresh, []);
@@ -41,7 +41,7 @@ export function ImageLibrary({
     setError(null);
     try {
       const asset = await uploadSharedAsset(file);
-      setImages((prev) => [asset, ...prev]);
+      setAssets((prev) => [asset, ...prev]);
       studio.selectSharedAsset(asset);
       onPicked?.();
     } catch {
@@ -59,10 +59,10 @@ export function ImageLibrary({
     setError(null);
     try {
       await deleteSharedAsset(asset.id);
-      setImages((prev) => prev.filter((a) => a.id !== asset.id));
+      setAssets((prev) => prev.filter((a) => a.id !== asset.id));
       if (studio.sharedBg?.url === asset.fileUrl) studio.clearSharedBg();
     } catch {
-      setError('Could not remove the image');
+      setError('Could not remove the asset');
     } finally {
       setRemovingId(null);
     }
@@ -73,7 +73,7 @@ export function ImageLibrary({
   return (
     <div className="scroll-slim h-full overflow-y-auto px-8 py-6">
       <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-[18px] font-bold text-ink">Image library</h2>
+        <h2 className="text-[18px] font-bold text-ink">Background library</h2>
         <span className="text-[12px] font-medium text-faint">Reusable team backgrounds</span>
       </div>
 
@@ -106,15 +106,16 @@ export function ImageLibrary({
         </div>
       )}
 
-      {!loading && images.length === 0 && (
-        <p className="text-[14px] text-faint">No images yet — add one above.</p>
+      {!loading && assets.length === 0 && (
+        <p className="text-[14px] text-faint">Nothing here yet — add an image above.</p>
       )}
 
-      {images.length > 0 && (
+      {assets.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {images.map((a) => {
+          {assets.map((a) => {
             const active = selected?.url === a.fileUrl;
             const removing = removingId === a.id;
+            const isVideo = a.kind === 'video';
             return (
               <div
                 key={a.id}
@@ -131,8 +132,26 @@ export function ImageLibrary({
                   title={a.name}
                   className="block h-full w-full"
                 >
-                  <img src={a.fileUrl} alt={a.name} className="h-full w-full object-cover" />
+                  {isVideo ? (
+                    <video
+                      src={a.fileUrl}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <img src={a.fileUrl} alt={a.name} className="h-full w-full object-cover" />
+                  )}
                 </button>
+                {isVideo && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute bottom-1.5 left-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white"
+                  >
+                    <Play width={14} height={14} />
+                  </span>
+                )}
                 <button
                   type="button"
                   aria-label={`Remove ${a.name}`}
