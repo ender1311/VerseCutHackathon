@@ -145,7 +145,11 @@ export function startBuild(req: BuildRequest): { jobId: string } {
 
   // Maestro (capture) needs a JDK + the maestro CLI on PATH.
   const extraPath = ['/opt/homebrew/opt/openjdk/bin', join(process.env.HOME ?? '', '.maestro', 'bin')];
-  const child = spawn('node', args, {
+  // Invoke the current Node binary via process.execPath (dynamic) rather than
+  // the literal 'node'. Turbopack's child_process tracer only pattern-matches
+  // literal node invocations to bundle the script arg; a dynamic command makes
+  // it leave args alone, so pm.mjs isn't (incorrectly) traced at build time.
+  const child = spawn(process.execPath, args, {
     cwd: REPO_ROOT,
     env: { ...process.env, PATH: `${extraPath.join(':')}:${process.env.PATH ?? ''}` },
   });
