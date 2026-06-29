@@ -1,4 +1,4 @@
-# Verse Ad Studio — CLAUDE.md
+# VerseCut — CLAUDE.md
 
 Browser tool for generating Bible-verse marketing assets (image + video ads).
 Deployed on Vercel at https://versecut.vercel.app.

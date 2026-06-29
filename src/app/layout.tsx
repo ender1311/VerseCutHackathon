@@ -3,7 +3,7 @@ import { AuthKitProvider } from '@workos-inc/authkit-nextjs/components';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Verse Ad Studio — YouVersion',
+  title: 'VerseCut — YouVersion',
   description: 'Create Bible-verse marketing assets — video and static image ads.',
   icons: { icon: '/assets/icons/bible-app/icon-only/en.svg' },
 };

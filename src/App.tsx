@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { config } from './config';
 import { InputPanel } from './components/InputPanel';
 import { RightPanel, type RightView } from './components/RightPanel';
 import { LibraryDrawer } from './components/LibraryDrawer';
 import { SpaceSwitcher } from './components/SpaceSwitcher';
+import { PanelResizer } from './components/PanelResizer';
 import { useStudio } from './lib/useStudio';
 import { BIBLE_APP_ASSETS } from './lib/iconCatalog';
+import { DEFAULT_PANEL_WIDTH, readStoredWidth, writeStoredWidth } from './lib/panelLayout';
 
 const STATUS: Record<string, { label: string; dot: string }> = {
   idle: { label: 'Ready to generate', dot: 'bg-faint' },
@@ -30,6 +32,13 @@ export default function App({
   const status = STATUS[statusKey] ?? STATUS.idle;
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [rightView, setRightView] = useState<RightView>('output');
+  // Start at the deterministic default so SSR and first client render match,
+  // then adopt any stored width after mount.
+  const [leftWidth, setLeftWidth] = useState(DEFAULT_PANEL_WIDTH);
+  useEffect(() => {
+    const stored = readStoredWidth();
+    if (stored !== null) setLeftWidth(stored);
+  }, []);
 
   const langIcon = BIBLE_APP_ASSETS['icon-only'][studio.languageCode];
   const headerLogo = langIcon
@@ -79,13 +88,17 @@ export default function App({
       </header>
 
       {/* Two-panel body */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(420px,468px)_1fr]">
-        <aside className="min-h-0 border-r border-line bg-surface">
+      <div
+        className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[var(--left-col)_1fr]"
+        style={{ '--left-col': `${leftWidth}px` } as React.CSSProperties}
+      >
+        <aside className="relative min-h-0 border-r border-line bg-surface">
           <InputPanel
             studio={studio}
             space={space}
             onBrowse={(v) => setRightView(v)}
           />
+          <PanelResizer width={leftWidth} onResize={setLeftWidth} onCommit={writeStoredWidth} />
         </aside>
         <main className="min-h-0 bg-panel">
           <RightPanel

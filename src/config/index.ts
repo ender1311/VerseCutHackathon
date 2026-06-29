@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// Verse Ad Studio — central, easy-to-edit configuration.
+// VerseCut — central, easy-to-edit configuration.
 // Swap the Bible provider, drop in an API key, change defaults, or replace the
 // logo asset here. Nothing else in the app should hard-code these values.
 // -----------------------------------------------------------------------------
@@ -7,7 +7,7 @@
 export const config = {
   /** Branding shown in the header + composited onto the ad. */
   brand: {
-    name: 'Verse Ad Studio',
+    name: 'VerseCut',
     tagline: 'YouVersion · Marketing',
     /**
      * Bottom-left logo composited onto every ad. Defaults to the official

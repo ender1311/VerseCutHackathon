@@ -1,4 +1,4 @@
-# Verse Ad Studio
+# VerseCut
 
 Browser tool for turning a Bible reference into a marketing asset — a **static image ad** (PNG/JPG) or a **video ad** (MP4), with the verse overlaid on a background and the logo in the bottom-left corner.
 

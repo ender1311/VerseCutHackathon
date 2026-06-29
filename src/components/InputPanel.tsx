@@ -1,9 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { useStudio } from '../lib/useStudio';
 import type { RightView } from './RightPanel';
 import { ChevronDown, ImageIcon, Play, Spinner, VideoIcon, XMark } from './icons';
-import { Button, FieldLabel, Segmented, SectionHeader, Select, Stepper, UploadField } from './ui';
+import { Button, CollapsibleSection, FieldLabel, Segmented, Select, Stepper, UploadField } from './ui';
 import { SOCIAL_FORMATS } from '../lib/socialFormats';
+import {
+  DEFAULT_SECTIONS,
+  readStoredSections,
+  toggleSection,
+  writeStoredSections,
+  type SectionKey,
+  type SectionState,
+} from '../lib/panelLayout';
 
 type Studio = ReturnType<typeof useStudio>;
 
@@ -137,229 +145,272 @@ export function InputPanel({
   const hasBgSource =
     !!studio.imageFile || !!studio.videoFile || !!studio.libraryVideo || !!studio.sharedBg;
 
+  const [sections, setSections] = useState<SectionState>(DEFAULT_SECTIONS);
+  useEffect(() => {
+    setSections(readStoredSections());
+  }, []);
+  const toggle = (key: SectionKey) =>
+    setSections((s) => {
+      const next = toggleSection(s, key);
+      writeStoredSections(next);
+      return next;
+    });
+  const showAudio = studio.format === 'video';
+  const showBranding = studio.template === 'classic';
+
   return (
     <div className="flex h-full flex-col">
-      <div className="scroll-slim flex-1 overflow-y-auto px-7 pt-6 pb-4">
-        {/* REQUIRED */}
-        <SectionHeader label="Required" tone="required" />
+      <div className="scroll-slim @container flex-1 overflow-y-auto px-7 pt-6 pb-4">
+        {/* CONTENT */}
+        <CollapsibleSection
+          title="Content"
+          open={sections.content}
+          onToggle={() => toggle('content')}
+        >
+          <div className="grid grid-cols-1 gap-x-5 gap-y-6 @[560px]:grid-cols-2">
+            <div>
+              <FieldLabel required>Language</FieldLabel>
+              <Select
+                value={studio.languageId}
+                onChange={studio.setLanguageId}
+                placeholder="Select a language"
+                options={studio.languages.map((l) => ({
+                  value: l.id,
+                  label: l.name,
+                  group: l.group,
+                }))}
+              />
+            </div>
 
-        <div className="mb-6">
-          <FieldLabel required>Language</FieldLabel>
-          <Select
-            value={studio.languageId}
-            onChange={studio.setLanguageId}
-            placeholder="Select a language"
-            options={studio.languages.map((l) => ({
-              value: l.id,
-              label: l.name,
-              group: l.group,
-            }))}
-          />
-        </div>
+            <div className="@[560px]:col-span-2">
+              <FieldLabel required hint="Book · chapter · verses">
+                Verse range
+              </FieldLabel>
+              <Select
+                value={studio.bookId}
+                onChange={studio.setBookId}
+                placeholder="Select a book"
+                options={studio.books.map((b) => ({ value: b.id, label: b.name }))}
+              />
+              <div className="mt-3 flex gap-3">
+                <Stepper
+                  label="Chapter"
+                  value={studio.chapter}
+                  min={1}
+                  max={studio.maxChapter}
+                  onChange={studio.setChapter}
+                />
+                <Stepper
+                  label="From v."
+                  value={studio.fromVerse}
+                  min={1}
+                  max={studio.maxVerse}
+                  onChange={studio.setFrom}
+                />
+                <Stepper
+                  label="To v."
+                  value={studio.toVerse}
+                  min={studio.fromVerse}
+                  max={studio.maxVerse}
+                  onChange={studio.setTo}
+                />
+              </div>
+            </div>
 
-        <div className="mb-6">
-          <FieldLabel required hint="Book · chapter · verses">
-            Verse range
-          </FieldLabel>
-          <Select
-            value={studio.bookId}
-            onChange={studio.setBookId}
-            placeholder="Select a book"
-            options={studio.books.map((b) => ({ value: b.id, label: b.name }))}
-          />
-          <div className="mt-3 flex gap-3">
-            <Stepper
-              label="Chapter"
-              value={studio.chapter}
-              min={1}
-              max={studio.maxChapter}
-              onChange={studio.setChapter}
-            />
-            <Stepper
-              label="From v."
-              value={studio.fromVerse}
-              min={1}
-              max={studio.maxVerse}
-              onChange={studio.setFrom}
-            />
-            <Stepper
-              label="To v."
-              value={studio.toVerse}
-              min={studio.fromVerse}
-              max={studio.maxVerse}
-              onChange={studio.setTo}
-            />
-          </div>
-        </div>
+            <div>
+              <FieldLabel hint="Layout">Template</FieldLabel>
+              <Segmented
+                value={studio.template}
+                onChange={studio.setTemplate}
+                options={[
+                  { value: 'classic', label: 'Classic' },
+                  { value: 'promo', label: 'App promo' },
+                ]}
+              />
+            </div>
 
-        {/* OPTIONAL */}
-        <SectionHeader label="Optional" tone="optional" />
+            <div>
+              <FieldLabel hint={`${studio.versions.length} available`}>Bible version</FieldLabel>
+              <Select
+                value={studio.versionId}
+                onChange={studio.setVersionId}
+                disabled={studio.versions.length === 0}
+                options={studio.versions.map((v) => ({
+                  value: v.id,
+                  label: `${v.abbreviation} — ${v.name}`,
+                }))}
+              />
+            </div>
 
-        <div className="mb-6">
-          <FieldLabel hint="Layout">Template</FieldLabel>
-          <Segmented
-            value={studio.template}
-            onChange={studio.setTemplate}
-            options={[
-              { value: 'classic', label: 'Classic' },
-              { value: 'promo', label: 'App promo' },
-            ]}
-          />
-        </div>
-
-        {studio.template === 'promo' && (
-          <div className="mb-6">
-            <FieldLabel hint="Shown above the logo">Call to action</FieldLabel>
-            <input
-              type="text"
-              value={studio.cta}
-              onChange={(e) => studio.setCta(e.target.value)}
-              placeholder="Download the Bible App!"
-              className="h-[52px] w-full rounded-xl border border-line bg-surface px-4 text-[15px] font-medium text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
-            />
-          </div>
-        )}
-
-        <div className="mb-6">
-          <FieldLabel hint={`${studio.versions.length} available`}>Bible version</FieldLabel>
-          <Select
-            value={studio.versionId}
-            onChange={studio.setVersionId}
-            disabled={studio.versions.length === 0}
-            options={studio.versions.map((v) => ({
-              value: v.id,
-              label: `${v.abbreviation} — ${v.name}`,
-            }))}
-          />
-        </div>
-
-        {studio.template === 'classic' && (
-          <div className="mb-6">
-            <FieldLabel hint="Bottom-left mark">Logo</FieldLabel>
-            <Select
-              value={studio.logoStyle}
-              onChange={studio.setLogoStyle}
-              options={[
-                { value: 'icon-only', label: 'App icon' },
-                { value: 'logo-light', label: 'Logo lockup — light' },
-                { value: 'logo-dark', label: 'Logo lockup — dark' },
-              ]}
-            />
-          </div>
-        )}
-
-        <div className="mb-6">
-          <UploadField
-            label="Background image"
-            hint="JPG / PNG"
-            accept="image/png,image/jpeg"
-            icon={<ImageIcon />}
-            file={studio.imageFile}
-            onSelect={(f) => studio.setImageFile(f)}
-            onClear={() => studio.setImageFile(null)}
-          />
-        </div>
-
-        <div className="mb-6">
-          <UploadField
-            label="Background video"
-            hint="MP4 / WEBM / MOV"
-            accept="video/mp4,video/webm,video/quicktime"
-            icon={<VideoIcon />}
-            file={studio.videoFile}
-            onSelect={(f) => studio.setVideoFile(f)}
-            onClear={() => studio.setVideoFile(null)}
-          />
-        </div>
-
-        <div className="mb-6">
-          <FieldLabel hint="YouVersion · by date">Video library</FieldLabel>
-          {libVideo && (
-            <SelectedChip
-              icon={<VideoIcon />}
-              title={libVideo.entry.title}
-              subtitle={libVideo.entry.language.toUpperCase()}
-              onClear={studio.clearLibraryVideo}
-            />
-          )}
-          <BrowseEntry
-            icon={<VideoIcon />}
-            title="Browse YouVersion videos"
-            hint="Pick a Guided Scripture video by date"
-            onClick={() => onBrowse('videos')}
-          />
-        </div>
-
-        <div className="mb-6">
-          <FieldLabel hint="Reusable backgrounds">Image library</FieldLabel>
-          {sharedImg && (
-            <SelectedChip
-              icon={<ImageIcon />}
-              title={sharedImg.label}
-              subtitle="Shared background"
-              onClear={studio.clearSharedBg}
-            />
-          )}
-          <BrowseEntry
-            icon={<ImageIcon />}
-            title="Browse the image library"
-            hint="Reusable team backgrounds · upload new"
-            onClick={() => onBrowse('images')}
-          />
-        </div>
-
-        {!hasBgSource && (
-          <div className="mb-6">
-            <GradientPicker studio={studio} />
-          </div>
-        )}
-
-        {studio.format === 'video' && (
-          <div className="mb-6">
-            <UploadField
-              label="Background music"
-              hint="MP3 / WAV · ambient"
-              accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/aac,audio/ogg"
-              icon={<VideoIcon />}
-              file={studio.musicFile}
-              onSelect={(f) => studio.setMusicFile(f)}
-              onClear={() => studio.setMusicFile(null)}
-            />
-          </div>
-        )}
-
-        {studio.format === 'video' && studio.voiceSupportedForLang && (
-          <div className="mb-2">
-            <FieldLabel hint="In-browser AI narration">Voiceover</FieldLabel>
-            <Segmented
-              value={studio.voiceover ? 'on' : 'off'}
-              onChange={(v) => studio.setVoiceover(v === 'on')}
-              options={[
-                { value: 'off', label: 'Off' },
-                { value: 'on', label: 'On' },
-              ]}
-            />
-            {studio.voiceover && (
-              <>
-                <div className="mt-3">
-                  <Select
-                    value={studio.voiceId ?? ''}
-                    onChange={studio.setVoice}
-                    options={studio.voices.map((v) => ({ value: v.id, label: v.label }))}
-                  />
-                </div>
-                {studio.ttsStatus.status === 'loading' && (
-                  <p className="mt-2 text-[12px] text-faint">
-                    Downloading voice model… {studio.ttsStatus.pct}%
-                  </p>
-                )}
-                <p className="mt-2 text-[12px] text-faint">
-                  Reads the verse aloud and ducks the music under it. The voice model
-                  (~80&nbsp;MB) downloads once, then is cached.
-                </p>
-              </>
+            {studio.template === 'promo' && (
+              <div className="@[560px]:col-span-2">
+                <FieldLabel hint="Shown above the logo">Call to action</FieldLabel>
+                <input
+                  type="text"
+                  value={studio.cta}
+                  onChange={(e) => studio.setCta(e.target.value)}
+                  placeholder="Download the Bible App!"
+                  className="h-[52px] w-full rounded-xl border border-line bg-surface px-4 text-[15px] font-medium text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+                />
+              </div>
             )}
           </div>
+        </CollapsibleSection>
+
+        {/* BACKGROUND */}
+        <CollapsibleSection
+          title="Background"
+          open={sections.background}
+          onToggle={() => toggle('background')}
+        >
+          <div className="grid grid-cols-1 gap-x-5 gap-y-6 @[560px]:grid-cols-2">
+            <div>
+              <UploadField
+                label="Background image"
+                hint="JPG / PNG"
+                accept="image/png,image/jpeg"
+                icon={<ImageIcon />}
+                file={studio.imageFile}
+                onSelect={(f) => studio.setImageFile(f)}
+                onClear={() => studio.setImageFile(null)}
+              />
+            </div>
+
+            <div>
+              <UploadField
+                label="Background video"
+                hint="MP4 / WEBM / MOV"
+                accept="video/mp4,video/webm,video/quicktime"
+                icon={<VideoIcon />}
+                file={studio.videoFile}
+                onSelect={(f) => studio.setVideoFile(f)}
+                onClear={() => studio.setVideoFile(null)}
+              />
+            </div>
+
+            <div>
+              <FieldLabel hint="YouVersion · by date">Video library</FieldLabel>
+              {libVideo && (
+                <SelectedChip
+                  icon={<VideoIcon />}
+                  title={libVideo.entry.title}
+                  subtitle={libVideo.entry.language.toUpperCase()}
+                  onClear={studio.clearLibraryVideo}
+                />
+              )}
+              <BrowseEntry
+                icon={<VideoIcon />}
+                title="Browse YouVersion videos"
+                hint="Pick a Guided Scripture video by date"
+                onClick={() => onBrowse('videos')}
+              />
+            </div>
+
+            <div>
+              <FieldLabel hint="Reusable backgrounds">Image library</FieldLabel>
+              {sharedImg && (
+                <SelectedChip
+                  icon={<ImageIcon />}
+                  title={sharedImg.label}
+                  subtitle="Shared background"
+                  onClear={studio.clearSharedBg}
+                />
+              )}
+              <BrowseEntry
+                icon={<ImageIcon />}
+                title="Browse the image library"
+                hint="Reusable team backgrounds · upload new"
+                onClick={() => onBrowse('images')}
+              />
+            </div>
+
+            {!hasBgSource && (
+              <div className="@[560px]:col-span-2">
+                <GradientPicker studio={studio} />
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
+
+        {/* AUDIO (video only) */}
+        {showAudio && (
+          <CollapsibleSection
+            title="Audio"
+            open={sections.audio}
+            onToggle={() => toggle('audio')}
+          >
+            <div className="grid grid-cols-1 gap-x-5 gap-y-6 @[560px]:grid-cols-2">
+              <div className="@[560px]:col-span-2">
+                <UploadField
+                  label="Background music"
+                  hint="MP3 / WAV · ambient"
+                  accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/aac,audio/ogg"
+                  icon={<VideoIcon />}
+                  file={studio.musicFile}
+                  onSelect={(f) => studio.setMusicFile(f)}
+                  onClear={() => studio.setMusicFile(null)}
+                />
+              </div>
+
+              {studio.voiceSupportedForLang && (
+                <div className="@[560px]:col-span-2">
+                  <FieldLabel hint="In-browser AI narration">Voiceover</FieldLabel>
+                  <Segmented
+                    value={studio.voiceover ? 'on' : 'off'}
+                    onChange={(v) => studio.setVoiceover(v === 'on')}
+                    options={[
+                      { value: 'off', label: 'Off' },
+                      { value: 'on', label: 'On' },
+                    ]}
+                  />
+                  {studio.voiceover && (
+                    <>
+                      <div className="mt-3">
+                        <Select
+                          value={studio.voiceId ?? ''}
+                          onChange={studio.setVoice}
+                          options={studio.voices.map((v) => ({ value: v.id, label: v.label }))}
+                        />
+                      </div>
+                      {studio.ttsStatus.status === 'loading' && (
+                        <p className="mt-2 text-[12px] text-faint">
+                          Downloading voice model… {studio.ttsStatus.pct}%
+                        </p>
+                      )}
+                      <p className="mt-2 text-[12px] text-faint">
+                        Reads the verse aloud and ducks the music under it. The voice model
+                        (~80&nbsp;MB) downloads once, then is cached.
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {/* BRANDING (classic template only) */}
+        {showBranding && (
+          <CollapsibleSection
+            title="Branding"
+            open={sections.branding}
+            onToggle={() => toggle('branding')}
+          >
+            <div className="grid grid-cols-1 gap-x-5 gap-y-6 @[560px]:grid-cols-2">
+              <div>
+                <FieldLabel hint="Bottom-left mark">Logo</FieldLabel>
+                <Select
+                  value={studio.logoStyle}
+                  onChange={studio.setLogoStyle}
+                  options={[
+                    { value: 'icon-only', label: 'App icon' },
+                    { value: 'logo-light', label: 'Logo lockup — light' },
+                    { value: 'logo-dark', label: 'Logo lockup — dark' },
+                  ]}
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
         )}
       </div>
 

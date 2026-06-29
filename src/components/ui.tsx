@@ -78,6 +78,36 @@ export function SectionHeader({ label, tone }: { label: string; tone: 'required'
   );
 }
 
+export function CollapsibleSection({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mb-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="mb-5 mt-1 flex w-full items-center gap-3"
+      >
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-faint">
+          {title}
+        </span>
+        <span className="h-px flex-1 bg-line" />
+        <ChevronDown className={`text-faint transition ${open ? '' : '-rotate-90'}`} />
+      </button>
+      {open && <div className="mb-6">{children}</div>}
+    </div>
+  );
+}
+
 export function Select<T extends string>({
   value,
   onChange,
