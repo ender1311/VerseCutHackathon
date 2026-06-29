@@ -8,7 +8,7 @@ export async function GET() {
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const assets = await prisma.sharedAsset.findMany({
     orderBy: { createdAt: 'desc' },
-    take: 100,
+    take: 500,
   });
   return Response.json({ data: assets });
 }
