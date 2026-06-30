@@ -117,13 +117,15 @@ export default function App({
       </header>
 
       {/* Mobile body (<md): one view at a time */}
+      {/* NOTE: The mobile and desktop InputPanel below are intentionally separate instances (one hidden per breakpoint) sharing the same `studio`. */}
       <div className="min-h-0 flex-1 overflow-hidden md:hidden">
         {mobileView === 'edit' && (
           <InputPanel
             studio={studio}
             space={space}
             onBrowse={(v) => {
-              if (v !== 'output') setMobileLib(v);
+              if (v === 'output') return;
+              setMobileLib(v);
               setMobileView('library');
             }}
           />
@@ -136,8 +138,8 @@ export default function App({
                 value={mobileLib}
                 onChange={(v) => setMobileLib(v as 'videos' | 'images')}
                 options={[
-                  { value: 'videos', label: 'Videos' },
-                  { value: 'images', label: 'Backgrounds' },
+                  { value: 'videos', label: 'Video library' },
+                  { value: 'images', label: 'Background library' },
                 ]}
               />
             </div>

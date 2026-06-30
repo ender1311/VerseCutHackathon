@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { useStudio } from '../lib/useStudio';
 import {
   loadManifest,
@@ -20,6 +20,7 @@ export function VideoLibrary({
   studio: Studio;
   onPicked?: () => void;
 }) {
+  const datalistId = useId();
   const [date, setDate] = useState('2026-06-26');
   const [dates, setDates] = useState<string[]>([]);
   const [results, setResults] = useState<ManifestEntry[] | null>(null);
@@ -96,11 +97,11 @@ export function VideoLibrary({
           <input
             type="date"
             value={date}
-            list="video-dates"
+            list={datalistId}
             onChange={(e) => setDate(e.target.value)}
             className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-[14px] text-ink outline-none focus:border-brand"
           />
-          <datalist id="video-dates">
+          <datalist id={datalistId}>
             {dates.map((d) => (
               <option key={d} value={d} />
             ))}
