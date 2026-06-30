@@ -135,7 +135,7 @@ export function Select<T extends string>({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value as T)}
-        className="h-[52px] w-full appearance-none rounded-xl border border-line bg-surface px-4 pr-11 text-[15px] font-medium text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10 disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-[52px] w-full appearance-none rounded-xl border border-line bg-surface px-4 pr-11 text-base font-medium text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10 disabled:cursor-not-allowed disabled:opacity-50 md:text-[15px]"
       >
         {placeholder && (
           <option value="" disabled>

@@ -250,7 +250,7 @@ export function InputPanel({
                   value={studio.cta}
                   onChange={(e) => studio.setCta(e.target.value)}
                   placeholder="Download the Bible App!"
-                  className="h-[52px] w-full rounded-xl border border-line bg-surface px-4 text-[15px] font-medium text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+                  className="h-[52px] w-full rounded-xl border border-line bg-surface px-4 text-base font-medium text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10 md:text-[15px]"
                 />
               </div>
             )}

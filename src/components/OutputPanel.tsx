@@ -263,7 +263,7 @@ export function OutputPanel({
               Your ad preview appears here
             </h2>
             <p className="text-[14px] leading-relaxed text-muted">
-              Pick a language and verse range on the left, then generate to see your{' '}
+              Pick a language and verse range, then generate to see your{' '}
               {format === 'video' ? 'video' : 'image'} ad render in {aspect}. You can keep
               editing and queue more while a render runs.
             </p>
