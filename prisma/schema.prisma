@@ -44,3 +44,22 @@ model SharedAsset {
 
   @@index([kind])
 }
+
+/// A published product-marketing video (built locally, published to prod).
+model ProductVideo {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  ownerId     String
+  ownerEmail  String
+  feature     String
+  title       String
+  length      String // 'short' | 'long'
+  lang        String
+  orientation String // 'portrait' | 'landscape'
+  fileUrl     String
+  mime        String?
+  sizeBytes   Int?
+
+  @@index([feature])
+  @@index([createdAt])
+}
