@@ -81,6 +81,7 @@ export function ProductBuilder() {
   const [startError, setStartError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState<string | null>(null);
   const [published, setPublished] = useState<Set<string>>(new Set());
+  const [publishError, setPublishError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const logRef = useRef<HTMLPreElement | null>(null);
 
@@ -171,6 +172,7 @@ export function ProductBuilder() {
 
   async function publish(feature: string, name: string) {
     setPublishing(name);
+    setPublishError(null);
     try {
       const r = await fetch('/api/pm/publish', {
         method: 'POST',
@@ -178,6 +180,9 @@ export function ProductBuilder() {
         body: JSON.stringify({ feature, name }),
       });
       if (r.ok) setPublished((p) => new Set(p).add(name));
+      else setPublishError(name);
+    } catch {
+      setPublishError(name);
     } finally {
       setPublishing(null);
     }
@@ -340,6 +345,7 @@ export function ProductBuilder() {
                         ? 'Publishing…'
                         : 'Publish to library'}
                   </button>
+                  {publishError === o.name && <p className="mt-1 text-[12px] text-brand">Publish failed</p>}
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <span className="truncate text-[12px] text-muted" title={o.name}>
                       {o.length} · {o.lang?.toUpperCase()} · {o.orientation}

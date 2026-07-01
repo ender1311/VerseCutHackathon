@@ -21,7 +21,7 @@ export function ProductLibrary() {
 
   useEffect(() => {
     fetch('/api/product-videos')
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error('request failed'); return r.json(); })
       .then((j) => setVideos(Array.isArray(j.data) ? j.data : []))
       .catch(() => setError('Could not load the product video library'))
       .finally(() => setLoading(false));
