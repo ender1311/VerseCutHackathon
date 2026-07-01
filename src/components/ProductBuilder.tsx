@@ -79,6 +79,8 @@ export function ProductBuilder() {
   const [job, setJob] = useState<JobStatus | null>(null);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState<string | null>(null);
+  const [published, setPublished] = useState<Set<string>>(new Set());
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const logRef = useRef<HTMLPreElement | null>(null);
 
@@ -164,6 +166,20 @@ export function ProductBuilder() {
       setStartError(e instanceof Error ? e.message : String(e));
     } finally {
       setStarting(false);
+    }
+  }
+
+  async function publish(feature: string, name: string) {
+    setPublishing(name);
+    try {
+      const r = await fetch('/api/pm/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feature, name }),
+      });
+      if (r.ok) setPublished((p) => new Set(p).add(name));
+    } finally {
+      setPublishing(null);
     }
   }
 
@@ -312,6 +328,18 @@ export function ProductBuilder() {
                     playsInline
                     className={`w-full rounded-lg bg-black ${portrait ? 'aspect-[9/16]' : 'aspect-video'} object-contain`}
                   />
+                  <button
+                    type="button"
+                    onClick={() => publish(job.feature, o.name)}
+                    disabled={publishing === o.name || published.has(o.name)}
+                    className="mt-2 w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] font-semibold text-ink transition hover:bg-line-soft disabled:opacity-60"
+                  >
+                    {published.has(o.name)
+                      ? 'Published ✓'
+                      : publishing === o.name
+                        ? 'Publishing…'
+                        : 'Publish to library'}
+                  </button>
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <span className="truncate text-[12px] text-muted" title={o.name}>
                       {o.length} · {o.lang?.toUpperCase()} · {o.orientation}
