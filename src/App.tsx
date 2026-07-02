@@ -8,7 +8,6 @@ import { LibraryDrawer } from './components/LibraryDrawer';
 import { SpaceSwitcher } from './components/SpaceSwitcher';
 import { PanelResizer } from './components/PanelResizer';
 import { OutputPanel } from './components/OutputPanel';
-import { VideoLibrary } from './components/VideoLibrary';
 import { ImageLibrary } from './components/ImageLibrary';
 import { MobileTabBar } from './components/MobileTabBar';
 import { MobileMenu } from './components/MobileMenu';
@@ -145,9 +144,9 @@ export default function App({
             </div>
             <div className="min-h-0 flex-1">
               {mobileLib === 'videos' ? (
-                <VideoLibrary studio={studio} onPicked={() => setMobileView('preview')} />
+                <ImageLibrary studio={studio} kind="video" onPicked={() => setMobileView('preview')} />
               ) : (
-                <ImageLibrary studio={studio} onPicked={() => setMobileView('preview')} />
+                <ImageLibrary studio={studio} kind="image" onPicked={() => setMobileView('preview')} />
               )}
             </div>
           </div>

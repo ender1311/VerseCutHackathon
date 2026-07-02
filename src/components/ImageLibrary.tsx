@@ -7,19 +7,21 @@ import {
   type SharedAsset,
 } from '../lib/library';
 import { Play, Spinner, UploadCloud, XMark } from './icons';
-import { Button, Segmented } from './ui';
+import { Button } from './ui';
 import { LazyVideo } from './LazyVideo';
 
 type Studio = ReturnType<typeof useStudio>;
-type KindFilter = 'all' | 'image' | 'video';
 
-// Right-panel browser for the team-shared background library (images + videos).
+// Right-panel browser for the team-shared library, scoped to one kind: the
+// "Background library" tab shows images, the "Video library" tab shows videos.
 // Picking an asset sets it as the background and returns to the preview (onPicked).
 export function ImageLibrary({
   studio,
+  kind = 'image',
   onPicked,
 }: {
   studio: Studio;
+  kind?: 'image' | 'video';
   onPicked?: () => void;
 }) {
   const [assets, setAssets] = useState<SharedAsset[]>([]);
@@ -27,14 +29,13 @@ export function ImageLibrary({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<KindFilter>('all');
   const inputRef = useRef<HTMLInputElement>(null);
 
   function refresh() {
     setLoading(true);
     listSharedAssets()
       .then((all) => setAssets(all))
-      .catch(() => setError('Could not load the background library'))
+      .catch(() => setError('Could not load the library'))
       .finally(() => setLoading(false));
   }
   useEffect(refresh, []);
@@ -72,38 +73,41 @@ export function ImageLibrary({
   }
 
   const selected = studio.sharedBg;
-  const imageCount = assets.filter((a) => a.kind === 'image').length;
-  const videoCount = assets.filter((a) => a.kind === 'video').length;
-  const visible = filter === 'all' ? assets : assets.filter((a) => a.kind === filter);
+  const visible = assets.filter((a) => a.kind === kind);
+  const heading = kind === 'video' ? 'Video library' : 'Background library';
+  const subtitle = kind === 'video' ? 'Reusable videos' : 'Reusable team backgrounds';
 
   return (
     <div className="scroll-slim h-full overflow-y-auto px-8 py-6">
       <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-[18px] font-bold text-ink">Background library</h2>
-        <span className="text-[12px] font-medium text-faint">Reusable team backgrounds</span>
+        <h2 className="text-[18px] font-bold text-ink">{heading}</h2>
+        <span className="text-[12px] font-medium text-faint">{subtitle}</span>
       </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,image/jpeg"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) onUpload(f);
-          e.target.value = '';
-        }}
-      />
-
-      <Button
-        variant="secondary"
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="mb-4"
-      >
-        {uploading ? <Spinner className="text-muted" /> : <UploadCloud />}
-        {uploading ? 'Uploading…' : 'Add an image (JPG / PNG)'}
-      </Button>
+      {kind === 'image' && (
+        <>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/png,image/jpeg"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onUpload(f);
+              e.target.value = '';
+            }}
+          />
+          <Button
+            variant="secondary"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="mb-4"
+          >
+            {uploading ? <Spinner className="text-muted" /> : <UploadCloud />}
+            {uploading ? 'Uploading…' : 'Add an image (JPG / PNG)'}
+          </Button>
+        </>
+      )}
 
       {error && <p className="mb-3 text-[13px] text-brand">{error}</p>}
       {loading && (
@@ -112,26 +116,10 @@ export function ImageLibrary({
         </div>
       )}
 
-      {!loading && assets.length === 0 && (
-        <p className="text-[14px] text-faint">Nothing here yet — add an image above.</p>
-      )}
-
-      {assets.length > 0 && (
-        <div className="mb-4 max-w-[360px]">
-          <Segmented
-            value={filter}
-            onChange={(v) => setFilter(v as KindFilter)}
-            options={[
-              { value: 'all', label: `All (${assets.length})` },
-              { value: 'video', label: `Videos (${videoCount})` },
-              { value: 'image', label: `Images (${imageCount})` },
-            ]}
-          />
-        </div>
-      )}
-
-      {assets.length > 0 && visible.length === 0 && (
-        <p className="text-[14px] text-faint">No {filter}s in the library.</p>
+      {!loading && visible.length === 0 && (
+        <p className="text-[14px] text-faint">
+          {kind === 'video' ? 'No videos in the library yet.' : 'Nothing here yet — add an image above.'}
+        </p>
       )}
 
       {visible.length > 0 && (

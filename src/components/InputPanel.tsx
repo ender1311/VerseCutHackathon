@@ -140,10 +140,9 @@ export function InputPanel({
   onBrowse: (view: RightView) => void;
 }) {
   const rendering = studio.isRendering;
-  const libVideo = studio.libraryVideo;
-  const sharedBg = studio.sharedBg;
-  const hasBgSource =
-    !!studio.imageFile || !!studio.videoFile || !!studio.libraryVideo || !!studio.sharedBg;
+  const sharedVideo = studio.sharedBg?.kind === 'video' ? studio.sharedBg : null;
+  const sharedImg = studio.sharedBg?.kind === 'image' ? studio.sharedBg : null;
+  const hasBgSource = !!studio.imageFile || !!studio.videoFile || !!studio.sharedBg;
 
   const [sections, setSections] = useState<SectionState>(DEFAULT_SECTIONS);
   useEffect(() => {
@@ -289,37 +288,37 @@ export function InputPanel({
             </div>
 
             <div>
-              <FieldLabel hint="YouVersion · by date">Video library</FieldLabel>
-              {libVideo && (
+              <FieldLabel hint="Reusable videos">Video library</FieldLabel>
+              {sharedVideo && (
                 <SelectedChip
                   icon={<VideoIcon />}
-                  title={libVideo.entry.title}
-                  subtitle={libVideo.entry.language.toUpperCase()}
-                  onClear={studio.clearLibraryVideo}
+                  title={sharedVideo.label}
+                  subtitle="Shared video background"
+                  onClear={studio.clearSharedBg}
                 />
               )}
               <BrowseEntry
                 icon={<VideoIcon />}
-                title="Browse YouVersion videos"
-                hint="Pick a Guided Scripture video by date"
+                title="Browse the video library"
+                hint="Reusable team videos"
                 onClick={() => onBrowse('videos')}
               />
             </div>
 
             <div>
               <FieldLabel hint="Reusable backgrounds">Background library</FieldLabel>
-              {sharedBg && (
+              {sharedImg && (
                 <SelectedChip
-                  icon={sharedBg.kind === 'video' ? <VideoIcon /> : <ImageIcon />}
-                  title={sharedBg.label}
-                  subtitle={sharedBg.kind === 'video' ? 'Shared video background' : 'Shared background'}
+                  icon={<ImageIcon />}
+                  title={sharedImg.label}
+                  subtitle="Shared background"
                   onClear={studio.clearSharedBg}
                 />
               )}
               <BrowseEntry
                 icon={<ImageIcon />}
                 title="Browse the background library"
-                hint="Reusable team backgrounds · images + video"
+                hint="Reusable team backgrounds"
                 onClick={() => onBrowse('images')}
               />
             </div>
