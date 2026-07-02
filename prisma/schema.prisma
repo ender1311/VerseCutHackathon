@@ -41,8 +41,13 @@ model SharedAsset {
   fileUrl    String
   mime       String?
   sizeBytes  Int?
+  source      String? // 'youversion' | 'unsplash' | 'pexels'
+  language    String? // e.g. 'en' | 'es' | 'pt' | 'fr'
+  category    String? // 'prerendered' | 'prerendered_bg' (YouVersion)
+  orientation String? // 'portrait' | 'landscape'
 
   @@index([kind])
+  @@index([source])
 }
 
 /// A published product-marketing video (built locally, published to prod).
