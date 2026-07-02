@@ -70,6 +70,10 @@ export interface SharedAsset {
   kind: 'image' | 'video';
   name: string;
   fileUrl: string;
+  source?: string | null;
+  language?: string | null;
+  category?: string | null;
+  orientation?: string | null;
 }
 
 export async function listSharedAssets(): Promise<SharedAsset[]> {

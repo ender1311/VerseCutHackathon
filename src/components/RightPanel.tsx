@@ -3,12 +3,13 @@ import { OutputPanel } from './OutputPanel';
 import { ImageLibrary } from './ImageLibrary';
 
 type Studio = ReturnType<typeof useStudio>;
-export type RightView = 'output' | 'videos' | 'images';
+export type RightView = 'output' | 'videos' | 'youversion' | 'unsplash';
 
 const TABS: { id: RightView; label: string }[] = [
   { id: 'output', label: 'Preview' },
+  { id: 'youversion', label: 'YouVersion' },
+  { id: 'unsplash', label: 'Unsplash' },
   { id: 'videos', label: 'Video library' },
-  { id: 'images', label: 'Image library' },
 ];
 
 export function RightPanel({
@@ -40,11 +41,14 @@ export function RightPanel({
       </div>
       <div className="min-h-0 flex-1">
         {view === 'output' && <OutputPanel studio={studio} space={space} />}
+        {view === 'youversion' && (
+          <ImageLibrary studio={studio} kind="image" source="youversion" onPicked={() => setView('output')} />
+        )}
+        {view === 'unsplash' && (
+          <ImageLibrary studio={studio} kind="image" source="unsplash" onPicked={() => setView('output')} />
+        )}
         {view === 'videos' && (
           <ImageLibrary studio={studio} kind="video" onPicked={() => setView('output')} />
-        )}
-        {view === 'images' && (
-          <ImageLibrary studio={studio} kind="image" onPicked={() => setView('output')} />
         )}
       </div>
     </div>
