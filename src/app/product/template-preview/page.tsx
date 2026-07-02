@@ -42,7 +42,6 @@ export default function TemplatePreview() {
           <figure key={t.id}>
             <figcaption className="mb-2 text-[13px] font-semibold text-ink">{t.name}</figcaption>
             {urls[t.id] ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img src={urls[t.id]} alt={t.name} className="w-full rounded-xl border border-line" />
             ) : (
               <div className="aspect-[9/19] w-full animate-pulse rounded-xl bg-line-soft" />
