@@ -13,12 +13,15 @@ export default function TemplatePreview() {
 
   useEffect(() => {
     let alive = true;
+    const created: string[] = [];
     (async () => {
       try {
         for (const t of PRODUCT_TEMPLATES) {
           const blob = await renderTemplate(t, {});
           if (!alive) return;
-          setUrls((u) => ({ ...u, [t.id]: URL.createObjectURL(blob) }));
+          const url = URL.createObjectURL(blob);
+          created.push(url);
+          setUrls((u) => ({ ...u, [t.id]: url }));
         }
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : 'render failed');
@@ -26,6 +29,7 @@ export default function TemplatePreview() {
     })();
     return () => {
       alive = false;
+      created.forEach((u) => URL.revokeObjectURL(u));
     };
   }, []);
 
