@@ -40,7 +40,7 @@ export default function App({
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [rightView, setRightView] = useState<RightView>('output');
   const [mobileView, setMobileView] = useState<MobileView>('edit');
-  const [mobileLib, setMobileLib] = useState<'videos' | 'images'>('images');
+  const [mobileLib, setMobileLib] = useState<'videos' | 'youversion' | 'unsplash'>('unsplash');
   const [menuOpen, setMenuOpen] = useState(false);
   // Start at the deterministic default so SSR and first client render match,
   // then adopt any stored width after mount.
@@ -135,10 +135,11 @@ export default function App({
             <div className="shrink-0 px-4 pt-3">
               <Segmented
                 value={mobileLib}
-                onChange={(v) => setMobileLib(v as 'videos' | 'images')}
+                onChange={(v) => setMobileLib(v as 'videos' | 'youversion' | 'unsplash')}
                 options={[
-                  { value: 'videos', label: 'Video library' },
-                  { value: 'images', label: 'Image library' },
+                  { value: 'youversion', label: 'YouVersion' },
+                  { value: 'unsplash', label: 'Unsplash' },
+                  { value: 'videos', label: 'Videos' },
                 ]}
               />
             </div>
@@ -146,7 +147,12 @@ export default function App({
               {mobileLib === 'videos' ? (
                 <ImageLibrary studio={studio} kind="video" onPicked={() => setMobileView('preview')} />
               ) : (
-                <ImageLibrary studio={studio} kind="image" onPicked={() => setMobileView('preview')} />
+                <ImageLibrary
+                  studio={studio}
+                  kind="image"
+                  source={mobileLib}
+                  onPicked={() => setMobileView('preview')}
+                />
               )}
             </div>
           </div>

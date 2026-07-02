@@ -4,6 +4,7 @@ import type { RightView } from './RightPanel';
 import { ChevronDown, ImageIcon, Play, Spinner, VideoIcon, XMark } from './icons';
 import { Button, CollapsibleSection, FieldLabel, Segmented, Select, Stepper, UploadField } from './ui';
 import { SOCIAL_FORMATS } from '../lib/socialFormats';
+import { deriveSource } from '../lib/assetTaxonomy';
 import {
   DEFAULT_SECTIONS,
   readStoredSections,
@@ -142,6 +143,8 @@ export function InputPanel({
   const rendering = studio.isRendering;
   const sharedVideo = studio.sharedBg?.kind === 'video' ? studio.sharedBg : null;
   const sharedImg = studio.sharedBg?.kind === 'image' ? studio.sharedBg : null;
+  const sharedYV = sharedImg && deriveSource(sharedImg.label) === 'youversion' ? sharedImg : null;
+  const sharedUnsplash = sharedImg && deriveSource(sharedImg.label) !== 'youversion' ? sharedImg : null;
   const hasBgSource = !!studio.imageFile || !!studio.videoFile || !!studio.sharedBg;
 
   const [sections, setSections] = useState<SectionState>(DEFAULT_SECTIONS);
@@ -306,20 +309,38 @@ export function InputPanel({
             </div>
 
             <div>
-              <FieldLabel hint="Reusable backgrounds">Image library</FieldLabel>
-              {sharedImg && (
+              <FieldLabel hint="Bible App backgrounds">YouVersion</FieldLabel>
+              {sharedYV && (
                 <SelectedChip
                   icon={<ImageIcon />}
-                  title={sharedImg.label}
-                  subtitle="Shared background"
+                  title={sharedYV.label}
+                  subtitle="YouVersion background"
                   onClear={studio.clearSharedBg}
                 />
               )}
               <BrowseEntry
                 icon={<ImageIcon />}
-                title="Browse the image library"
-                hint="Reusable team backgrounds"
-                onClick={() => onBrowse('images')}
+                title="Browse YouVersion backgrounds"
+                hint="By language · verse backgrounds"
+                onClick={() => onBrowse('youversion')}
+              />
+            </div>
+
+            <div>
+              <FieldLabel hint="Photo backgrounds">Unsplash</FieldLabel>
+              {sharedUnsplash && (
+                <SelectedChip
+                  icon={<ImageIcon />}
+                  title={sharedUnsplash.label}
+                  subtitle="Unsplash background"
+                  onClear={studio.clearSharedBg}
+                />
+              )}
+              <BrowseEntry
+                icon={<ImageIcon />}
+                title="Browse Unsplash backgrounds"
+                hint="Reusable team photos"
+                onClick={() => onBrowse('unsplash')}
               />
             </div>
 

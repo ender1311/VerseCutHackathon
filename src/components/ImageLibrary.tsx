@@ -7,21 +7,33 @@ import {
   type SharedAsset,
 } from '../lib/library';
 import { Play, Spinner, UploadCloud, XMark } from './icons';
-import { Button } from './ui';
+import { Button, Segmented } from './ui';
 import { LazyVideo } from './LazyVideo';
 
 type Studio = ReturnType<typeof useStudio>;
+type LibrarySource = 'youversion' | 'unsplash';
+type CatFilter = 'all' | 'prerendered_bg' | 'prerendered';
+type OrientFilter = 'all' | 'portrait' | 'landscape';
 
-// Right-panel browser for the team-shared library, scoped to one kind: the
-// "Image library" tab shows images, the "Video library" tab shows videos.
-// Picking an asset sets it as the background and returns to the preview (onPicked).
+const LANG_NAMES: Record<string, string> = {
+  en: 'English',
+  es: 'Spanish',
+  pt: 'Portuguese',
+  fr: 'French',
+};
+
+// Right-panel browser for the team-shared library, scoped by tab:
+// YouVersion (verse backgrounds, grouped by language + category/orientation
+// filters), Unsplash (photo backgrounds), and the Video library (kind=video).
 export function ImageLibrary({
   studio,
   kind = 'image',
+  source,
   onPicked,
 }: {
   studio: Studio;
   kind?: 'image' | 'video';
+  source?: LibrarySource;
   onPicked?: () => void;
 }) {
   const [assets, setAssets] = useState<SharedAsset[]>([]);
@@ -29,6 +41,8 @@ export function ImageLibrary({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [cat, setCat] = useState<CatFilter>('all');
+  const [orient, setOrient] = useState<OrientFilter>('all');
   const inputRef = useRef<HTMLInputElement>(null);
 
   function refresh() {
@@ -73,9 +87,88 @@ export function ImageLibrary({
   }
 
   const selected = studio.sharedBg;
-  const visible = assets.filter((a) => a.kind === kind);
-  const heading = kind === 'video' ? 'Video library' : 'Image library';
-  const subtitle = kind === 'video' ? 'Reusable videos' : 'Reusable team backgrounds';
+  const isYouVersion = source === 'youversion';
+  const canUpload = source === 'unsplash';
+
+  let visible = assets.filter((a) => a.kind === kind && (!source || a.source === source));
+  if (isYouVersion) {
+    if (cat !== 'all') visible = visible.filter((a) => a.category === cat);
+    if (orient !== 'all') visible = visible.filter((a) => a.orientation === orient);
+  }
+
+  const heading = isYouVersion
+    ? 'YouVersion'
+    : source === 'unsplash'
+      ? 'Unsplash'
+      : 'Video library';
+  const subtitle = isYouVersion
+    ? 'Bible App verse backgrounds'
+    : source === 'unsplash'
+      ? 'Reusable photo backgrounds'
+      : 'Reusable videos';
+
+  function card(a: SharedAsset) {
+    const active = selected?.url === a.fileUrl;
+    const removing = removingId === a.id;
+    const isVideo = a.kind === 'video';
+    return (
+      <div
+        key={a.id}
+        className={`group relative aspect-square overflow-hidden rounded-xl border bg-black transition ${
+          active ? 'border-brand ring-2 ring-brand/30' : 'border-line hover:border-faint'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            studio.selectSharedAsset(a);
+            onPicked?.();
+          }}
+          title={a.name}
+          className="block h-full w-full"
+        >
+          {isVideo ? (
+            <LazyVideo src={a.fileUrl} />
+          ) : (
+            <img
+              src={a.fileUrl}
+              alt={a.name}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          )}
+        </button>
+        {isVideo && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-1.5 left-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white"
+          >
+            <Play width={14} height={14} />
+          </span>
+        )}
+        <button
+          type="button"
+          aria-label={`Remove ${a.name}`}
+          title="Remove from library"
+          onClick={() => onRemove(a)}
+          disabled={removing}
+          className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white opacity-0 transition hover:bg-black/80 focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-100"
+        >
+          {removing ? <Spinner className="text-white" /> : <XMark width={14} height={14} />}
+        </button>
+      </div>
+    );
+  }
+
+  const grid = (list: SharedAsset[]) => (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{list.map(card)}</div>
+  );
+
+  // For YouVersion, group the visible assets by language.
+  const languages = isYouVersion
+    ? Array.from(new Set(visible.map((a) => a.language || 'other')))
+    : [];
 
   return (
     <div className="scroll-slim h-full overflow-y-auto px-8 py-6">
@@ -84,7 +177,7 @@ export function ImageLibrary({
         <span className="text-[12px] font-medium text-faint">{subtitle}</span>
       </div>
 
-      {kind === 'image' && (
+      {canUpload && (
         <>
           <input
             ref={inputRef}
@@ -109,6 +202,33 @@ export function ImageLibrary({
         </>
       )}
 
+      {isYouVersion && (
+        <div className="mb-4 flex flex-wrap gap-3">
+          <div className="min-w-[240px] flex-1">
+            <Segmented
+              value={cat}
+              onChange={(v) => setCat(v as CatFilter)}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'prerendered_bg', label: 'Backgrounds' },
+                { value: 'prerendered', label: 'Verse images' },
+              ]}
+            />
+          </div>
+          <div className="min-w-[200px] flex-1">
+            <Segmented
+              value={orient}
+              onChange={(v) => setOrient(v as OrientFilter)}
+              options={[
+                { value: 'all', label: 'All' },
+                { value: 'portrait', label: 'Portrait' },
+                { value: 'landscape', label: 'Landscape' },
+              ]}
+            />
+          </div>
+        </div>
+      )}
+
       {error && <p className="mb-3 text-[13px] text-brand">{error}</p>}
       {loading && (
         <div className="flex items-center gap-2 text-[14px] text-muted">
@@ -118,67 +238,24 @@ export function ImageLibrary({
 
       {!loading && visible.length === 0 && (
         <p className="text-[14px] text-faint">
-          {kind === 'video' ? 'No videos in the library yet.' : 'Nothing here yet — add an image above.'}
+          {kind === 'video'
+            ? 'No videos in the library yet.'
+            : canUpload
+              ? 'Nothing here yet — add an image above.'
+              : 'No matching backgrounds.'}
         </p>
       )}
 
-      {visible.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {visible.map((a) => {
-            const active = selected?.url === a.fileUrl;
-            const removing = removingId === a.id;
-            const isVideo = a.kind === 'video';
-            return (
-              <div
-                key={a.id}
-                className={`group relative aspect-square overflow-hidden rounded-xl border bg-black transition ${
-                  active ? 'border-brand ring-2 ring-brand/30' : 'border-line hover:border-faint'
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    studio.selectSharedAsset(a);
-                    onPicked?.();
-                  }}
-                  title={a.name}
-                  className="block h-full w-full"
-                >
-                  {isVideo ? (
-                    <LazyVideo src={a.fileUrl} />
-                  ) : (
-                    <img
-                      src={a.fileUrl}
-                      alt={a.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </button>
-                {isVideo && (
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute bottom-1.5 left-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white"
-                  >
-                    <Play width={14} height={14} />
-                  </span>
-                )}
-                <button
-                  type="button"
-                  aria-label={`Remove ${a.name}`}
-                  title="Remove from library"
-                  onClick={() => onRemove(a)}
-                  disabled={removing}
-                  className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white opacity-0 transition hover:bg-black/80 focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-100"
-                >
-                  {removing ? <Spinner className="text-white" /> : <XMark width={14} height={14} />}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {isYouVersion
+        ? languages.map((lang) => (
+            <div key={lang} className="mb-6">
+              <h3 className="mb-3 text-[13px] font-bold uppercase tracking-[0.14em] text-faint">
+                {LANG_NAMES[lang] ?? lang}
+              </h3>
+              {grid(visible.filter((a) => (a.language || 'other') === lang))}
+            </div>
+          ))
+        : visible.length > 0 && grid(visible)}
     </div>
   );
 }
