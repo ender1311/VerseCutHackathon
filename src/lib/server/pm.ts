@@ -120,6 +120,8 @@ export interface BuildRequest {
   formats: string[];
   lengths: string[];
   capture: boolean;
+  subtitles: boolean;
+  voiceover: boolean;
 }
 
 export function startBuild(req: BuildRequest): { jobId: string } {
@@ -140,6 +142,8 @@ export function startBuild(req: BuildRequest): { jobId: string } {
     '--langs', langs.join(','),
     '--formats', formats.join(','),
     '--lengths', lengths.join(','),
+    '--subtitles', req.subtitles ? 'on' : 'off',
+    '--voiceover', req.voiceover ? 'on' : 'off',
   ];
   if (!req.capture) args.push('--no-capture');
 

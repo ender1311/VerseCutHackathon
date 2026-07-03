@@ -139,15 +139,17 @@ export function assemble(o) {
   filters.push(`[${base}][${tIdx}:v]overlay=${titlePos.x}:${titlePos.y}:enable='gte(t,0.3)'[c1]`);
   base = 'c1';
 
-  o.narration.beats.forEach((b, i) => {
-    const cap = join(work, `cap${i}.png`);
-    makeCaption(cap, b.caption, land ? 700 : 960, land ? 40 : 46);
-    const ci = register(cap);
-    const capY = land ? 780 : H - 560;
-    const capX = land ? '1180' : '(W-w)/2';
-    filters.push(`[${base}][${ci}:v]overlay=${capX}:${capY}:enable='between(t,${b.start},${b.end})'[cap${i}]`);
-    base = `cap${i}`;
-  });
+  if (o.subtitles !== false) {
+    o.narration.beats.forEach((b, i) => {
+      const cap = join(work, `cap${i}.png`);
+      makeCaption(cap, b.caption, land ? 700 : 960, land ? 40 : 46);
+      const ci = register(cap);
+      const capY = land ? 780 : H - 560;
+      const capX = land ? '1180' : '(W-w)/2';
+      filters.push(`[${base}][${ci}:v]overlay=${capX}:${capY}:enable='between(t,${b.start},${b.end})'[cap${i}]`);
+      base = `cap${i}`;
+    });
+  }
 
   const ctaPng = join(work, 'cta.png');
   makeCta(ctaPng, o.branding.cta);

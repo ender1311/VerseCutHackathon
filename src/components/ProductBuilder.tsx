@@ -75,6 +75,8 @@ export function ProductBuilder() {
   const [formats, setFormats] = useState<Set<string>>(new Set(ALL_FORMATS));
   const [lengths, setLengths] = useState<Set<string>>(new Set(ALL_LENGTHS));
   const [capture, setCapture] = useState(false);
+  const [subtitles, setSubtitles] = useState(true);
+  const [voiceover, setVoiceover] = useState(true);
 
   const [job, setJob] = useState<JobStatus | null>(null);
   const [starting, setStarting] = useState(false);
@@ -157,6 +159,8 @@ export function ProductBuilder() {
           formats: [...formats],
           lengths: [...lengths],
           capture,
+          subtitles,
+          voiceover,
         }),
       });
       const res = await r.json();
@@ -280,6 +284,22 @@ export function ProductBuilder() {
             <p className="mt-2 text-[12px] text-faint">
               Fresh capture boots the Simulator and runs the Maestro flow (needs the Bible app
               installed). Reuse renders from the previously captured clip.
+            </p>
+          </div>
+
+          {/* Overlays */}
+          <div>
+            <div className="mb-2 text-[13px] font-bold uppercase tracking-wide text-faint">Overlays</div>
+            <div className="flex gap-2">
+              <Chip active={subtitles} onClick={() => setSubtitles((v) => !v)}>
+                Subtitles {subtitles ? 'on' : 'off'}
+              </Chip>
+              <Chip active={voiceover} onClick={() => setVoiceover((v) => !v)}>
+                Voiceover {voiceover ? 'on' : 'off'}
+              </Chip>
+            </div>
+            <p className="mt-2 text-[12px] text-faint">
+              Toggle burned-in captions and AI narration. Voiceover uses a warm female voice per language.
             </p>
           </div>
 

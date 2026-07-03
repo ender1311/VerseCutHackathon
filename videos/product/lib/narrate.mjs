@@ -42,39 +42,53 @@ function srtTime(t) {
  * @param {{ beats: {text:string, caption?:string}[], voice:string, outDir:string, gap?:number, lead?:number, tail?:number }} opts
  * @returns {{ wav:string, srt:string, total:number, beats:{start:number,end:number,caption:string}[] }}
  */
-export function narrate({ beats, voice, outDir, gap = 0.32, lead = 0.4, tail = 0.8 }) {
+export function narrate({
+  beats,
+  voice,
+  outDir,
+  gap = 0.32,
+  lead = 0.4,
+  tail = 0.8,
+  voiceover = true,
+  perBeat = 3.2,
+}) {
   mkdirSync(outDir, { recursive: true });
   const tmp = join(outDir, '.tts');
   rmSync(tmp, { recursive: true, force: true });
   mkdirSync(tmp, { recursive: true });
 
-  const padded = [];
+  const wav = join(outDir, 'narration.wav');
   const durations = [];
-  beats.forEach((b, i) => {
-    const raw = join(tmp, `s${i}.wav`);
-    ttsWithRetry(b.text, voice, raw);
-    durations.push(ffprobeDuration(raw));
-    const pad = join(tmp, `p${i}.wav`);
-    execFileSync('ffmpeg', ['-y', '-i', raw, '-af', `apad=pad_dur=${gap}`, '-ar', '24000', '-ac', '1', pad], {
+
+  if (voiceover) {
+    // Kokoro TTS per beat, then concat into narration.wav.
+    const padded = [];
+    beats.forEach((b, i) => {
+      const raw = join(tmp, `s${i}.wav`);
+      ttsWithRetry(b.text, voice, raw);
+      durations.push(ffprobeDuration(raw));
+      const pad = join(tmp, `p${i}.wav`);
+      execFileSync('ffmpeg', ['-y', '-i', raw, '-af', `apad=pad_dur=${gap}`, '-ar', '24000', '-ac', '1', pad], {
+        stdio: ['ignore', 'ignore', 'ignore'],
+      });
+      padded.push(pad);
+    });
+    // A short lead of silence so the voice doesn't start on frame 0.
+    const leadFile = join(tmp, 'lead.wav');
+    execFileSync('ffmpeg', ['-y', '-f', 'lavfi', '-i', `anullsrc=r=24000:cl=mono`, '-t', String(lead), leadFile], {
       stdio: ['ignore', 'ignore', 'ignore'],
     });
-    padded.push(pad);
-  });
+    const listFile = join(tmp, 'list.txt');
+    writeFileSync(listFile, [leadFile, ...padded].map((p) => `file '${p}'`).join('\n'));
+    execFileSync('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', wav], {
+      stdio: ['ignore', 'ignore', 'ignore'],
+    });
+  } else {
+    // No voiceover: fixed per-beat pacing, no TTS.
+    beats.forEach(() => durations.push(perBeat));
+  }
 
-  // A short lead of silence so the voice doesn't start on frame 0.
-  const leadFile = join(tmp, 'lead.wav');
-  execFileSync('ffmpeg', ['-y', '-f', 'lavfi', '-i', `anullsrc=r=24000:cl=mono`, '-t', String(lead), leadFile], {
-    stdio: ['ignore', 'ignore', 'ignore'],
-  });
-
-  const listFile = join(tmp, 'list.txt');
-  writeFileSync(listFile, [leadFile, ...padded].map((p) => `file '${p}'`).join('\n'));
-  const wav = join(outDir, 'narration.wav');
-  execFileSync('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', wav], {
-    stdio: ['ignore', 'ignore', 'ignore'],
-  });
-
-  // Beat timings + SRT.
+  // Beat timings + SRT (same for both paths).
   let t = lead;
   const timings = beats.map((b, i) => {
     const start = t;
@@ -83,6 +97,15 @@ export function narrate({ beats, voice, outDir, gap = 0.32, lead = 0.4, tail = 0
     return { start: round(start), end: round(end), caption: b.caption ?? b.text };
   });
   const total = round(t - gap + tail);
+
+  if (!voiceover) {
+    // Silent audio track spanning the whole video (keeps assemble's audio map valid).
+    execFileSync(
+      'ffmpeg',
+      ['-y', '-f', 'lavfi', '-i', 'anullsrc=r=24000:cl=mono', '-t', String(total), wav],
+      { stdio: ['ignore', 'ignore', 'ignore'] },
+    );
+  }
 
   const srt = join(outDir, 'subtitles.srt');
   writeFileSync(

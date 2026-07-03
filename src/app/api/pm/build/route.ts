@@ -21,6 +21,8 @@ export async function POST(req: Request) {
       formats: Array.isArray(b.formats) ? b.formats.map(String) : [],
       lengths: Array.isArray(b.lengths) ? b.lengths.map(String) : [],
       capture: !!b.capture,
+      subtitles: b.subtitles !== false,
+      voiceover: b.voiceover !== false,
     });
     return NextResponse.json({ data: { jobId } });
   } catch (err) {

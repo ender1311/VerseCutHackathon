@@ -19,7 +19,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
 const feature = argv[0];
 if (!feature || feature.startsWith('--')) {
-  console.error('Usage: pm.mjs <feature> [--langs en,es] [--formats portrait,landscape] [--lengths short,long] [--device UDID] [--no-capture]');
+  console.error('Usage: pm.mjs <feature> [--langs en,es] [--formats portrait,landscape] [--lengths short,long] [--subtitles on|off] [--voiceover on|off] [--device UDID] [--no-capture]');
   process.exit(1);
 }
 function flag(name, def) {
@@ -31,6 +31,8 @@ const formats = flag('formats', 'portrait,landscape').split(',');
 const lengths = flag('lengths', 'short,long').split(',');
 const device = flag('device', '');
 const noCapture = argv.includes('--no-capture');
+const subtitles = flag('subtitles', 'on') !== 'off';
+const voiceover = flag('voiceover', 'on') !== 'off';
 
 const def = JSON.parse(readFileSync(join(ROOT, 'features', feature, 'feature.json'), 'utf8'));
 const work = join(ROOT, 'work', feature);
@@ -68,8 +70,8 @@ async function main() {
         continue;
       }
       const voice = def.voices?.[lang] || 'af_heart';
-      console.log(`▶ narrating ${length}/${lang} (${voice}) …`);
-      const narration = narrate({ beats, voice, outDir: join(work, `${length}-${lang}`) });
+      console.log(`▶ narrating ${length}/${lang} (${voice}) voiceover=${voiceover} subtitles=${subtitles} …`);
+      const narration = narrate({ beats, voice, voiceover, outDir: join(work, `${length}-${lang}`) });
 
       for (const orientation of formats) {
         const outFile = join(outDir, `${feature}-${length}-${lang}-${orientation}.mp4`);
@@ -78,6 +80,7 @@ async function main() {
           clip,
           narration,
           music,
+          subtitles,
           target: { orientation },
           branding: { title: def.title, subtitle: def.subtitle, cta: def.cta },
           outFile,
