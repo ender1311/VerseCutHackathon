@@ -11,11 +11,19 @@ import { OutputPanel } from './components/OutputPanel';
 import { ImageLibrary } from './components/ImageLibrary';
 import { MobileTabBar } from './components/MobileTabBar';
 import { MobileMenu } from './components/MobileMenu';
+import { SettingsDrawer } from './components/SettingsDrawer';
 import { Segmented } from './components/ui';
-import { Menu } from './components/icons';
+import { Menu, Settings } from './components/icons';
 import { type MobileView } from './lib/mobileNav';
 import { useStudio } from './lib/useStudio';
 import { DEFAULT_PANEL_WIDTH, readStoredWidth, writeStoredWidth } from './lib/panelLayout';
+import {
+  DEFAULT_APP_SETTINGS,
+  readStoredAppSettings,
+  toggleSetting,
+  writeStoredAppSettings,
+  type SettingKey,
+} from './lib/appSettings';
 
 const STATUS: Record<string, { label: string; dot: string }> = {
   idle: { label: 'Ready to generate', dot: 'bg-faint' },
@@ -37,6 +45,17 @@ export default function App({
     : (studio.selectedJob?.status ?? 'idle');
   const status = STATUS[statusKey] ?? STATUS.idle;
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState(DEFAULT_APP_SETTINGS);
+  useEffect(() => {
+    setSettings(readStoredAppSettings());
+  }, []);
+  const onToggleSetting = (key: SettingKey) =>
+    setSettings((s) => {
+      const next = toggleSetting(s, key);
+      writeStoredAppSettings(next);
+      return next;
+    });
   const [rightView, setRightView] = useState<RightView>('output');
   const [mobileView, setMobileView] = useState<MobileView>('edit');
   const [mobileLib, setMobileLib] = useState<'videos' | 'youversion' | 'unsplash'>('unsplash');
@@ -88,6 +107,14 @@ export default function App({
             >
               Saved ads
             </button>
+            <button
+              type="button"
+              aria-label="Settings"
+              onClick={() => setSettingsOpen(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted transition hover:bg-line-soft hover:text-ink"
+            >
+              <Settings />
+            </button>
             <div className="flex items-center gap-2 rounded-full bg-panel px-3.5 py-1.5">
               <span className={`h-2 w-2 rounded-full ${status.dot}`} />
               <span className="text-[13px] font-semibold text-muted">{status.label}</span>
@@ -116,6 +143,7 @@ export default function App({
           <InputPanel
             studio={studio}
             space={space}
+            settings={settings}
             onBrowse={(v) => {
               if (v === 'output') return;
               setMobileLib(v);
@@ -162,6 +190,7 @@ export default function App({
           <InputPanel
             studio={studio}
             space={space}
+            settings={settings}
             onBrowse={(v) => setRightView(v)}
           />
           <PanelResizer width={leftWidth} onResize={setLeftWidth} onCommit={writeStoredWidth} />
@@ -183,8 +212,15 @@ export default function App({
         status={status}
         userEmail={userEmail}
         onOpenSavedAds={() => setLibraryOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
       <LibraryDrawer open={libraryOpen} onClose={() => setLibraryOpen(false)} />
+      <SettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onToggle={onToggleSetting}
+      />
     </div>
   );
 }

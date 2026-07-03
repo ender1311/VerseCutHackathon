@@ -5,6 +5,7 @@ import { ChevronDown, ImageIcon, Play, Spinner, UploadCloud, VideoIcon, XMark } 
 import { Button, CollapsibleSection, FieldLabel, Segmented, Select, Stepper, UploadField } from './ui';
 import { SOCIAL_FORMATS } from '../lib/socialFormats';
 import { gradientFromHex, normalizeHex } from '../lib/gradients';
+import { DEFAULT_APP_SETTINGS, type AppSettings } from '../lib/appSettings';
 import { deriveSource } from '../lib/assetTaxonomy';
 import {
   DEFAULT_SECTIONS,
@@ -179,10 +180,12 @@ function GradientPicker({ studio }: { studio: Studio }) {
 export function InputPanel({
   studio,
   space = 'ads',
+  settings = DEFAULT_APP_SETTINGS,
   onBrowse,
 }: {
   studio: Studio;
   space?: 'ads' | 'social' | 'product';
+  settings?: AppSettings;
   onBrowse: (view: RightView) => void;
 }) {
   const rendering = studio.isRendering;
@@ -219,8 +222,8 @@ export function InputPanel({
       writeStoredSections(next);
       return next;
     });
-  const showAudio = studio.format === 'video';
-  const showBranding = studio.template === 'classic';
+  const showAudio = studio.format === 'video' && (settings.music || settings.voiceover);
+  const showBranding = studio.template === 'classic' && settings.branding;
   const outputSummary = `${studio.format === 'video' ? 'Video' : 'Image'} · ${studio.aspect} · ${
     studio.format === 'video' ? `${studio.durationSec}s` : studio.imageFormat.toUpperCase()
   }`;
@@ -386,19 +389,21 @@ export function InputPanel({
             onToggle={() => toggle('audio')}
           >
             <div className="grid grid-cols-1 gap-x-5 gap-y-6 @[560px]:grid-cols-2">
-              <div className="@[560px]:col-span-2">
-                <UploadField
-                  label="Background music"
-                  hint="MP3 / WAV · ambient"
-                  accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/aac,audio/ogg"
-                  icon={<VideoIcon />}
-                  file={studio.musicFile}
-                  onSelect={(f) => studio.setMusicFile(f)}
-                  onClear={() => studio.setMusicFile(null)}
-                />
-              </div>
+              {settings.music && (
+                <div className="@[560px]:col-span-2">
+                  <UploadField
+                    label="Background music"
+                    hint="MP3 / WAV · ambient"
+                    accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/aac,audio/ogg"
+                    icon={<VideoIcon />}
+                    file={studio.musicFile}
+                    onSelect={(f) => studio.setMusicFile(f)}
+                    onClear={() => studio.setMusicFile(null)}
+                  />
+                </div>
+              )}
 
-              {studio.voiceSupportedForLang && (
+              {settings.voiceover && studio.voiceSupportedForLang && (
                 <div className="@[560px]:col-span-2">
                   <FieldLabel hint="In-browser AI narration">Voiceover</FieldLabel>
                   <Segmented

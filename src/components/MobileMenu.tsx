@@ -9,12 +9,14 @@ export function MobileMenu({
   status,
   userEmail,
   onOpenSavedAds,
+  onOpenSettings,
 }: {
   open: boolean;
   onClose: () => void;
   status: { label: string; dot: string };
   userEmail?: string | null;
   onOpenSavedAds: () => void;
+  onOpenSettings: () => void;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -54,6 +56,17 @@ export function MobileMenu({
           className="rounded-lg px-3 py-2.5 text-left text-[15px] font-semibold text-ink transition hover:bg-line-soft"
         >
           Saved ads
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            onClose();
+            onOpenSettings();
+          }}
+          className="rounded-lg px-3 py-2.5 text-left text-[15px] font-semibold text-ink transition hover:bg-line-soft"
+        >
+          Settings
         </button>
 
         <div className="mt-auto border-t border-line pt-4">
