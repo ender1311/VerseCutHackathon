@@ -151,15 +151,19 @@ function PreviewFrame({
   safeArea?: boolean;
   children: React.ReactNode;
 }) {
-  // Size tall/square formats by height; only 16:9 sizes by width.
+  // Size tall/square formats by height; only 16:9 sizes by width. The frame
+  // fills the available height of its (flex-constrained) parent and never
+  // overflows it — so the whole preview stays visible on small screens, with
+  // a hard cap on large desktop viewports.
   const byHeight = aspect !== '16:9';
   return (
     <div
       className="relative overflow-hidden rounded-2xl bg-black shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)] ring-1 ring-black/5"
       style={{
         aspectRatio: aspect.replace(':', ' / '),
-        height: byHeight ? 'min(74vh, 720px)' : undefined,
-        width: byHeight ? undefined : 'min(80%, 880px)',
+        height: byHeight ? '100%' : undefined,
+        width: byHeight ? undefined : 'min(100%, 880px)',
+        maxHeight: 'min(100%, 720px)',
         maxWidth: '100%',
       }}
     >
@@ -234,14 +238,14 @@ export function OutputPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-10 pt-7">
+      <div className="px-6 pt-4 md:px-10 md:pt-7">
         <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-faint">
           Preview · {kindLabel} · {aspect}
         </span>
       </div>
 
       {jobs.length > 0 && (
-        <div className="scroll-slim flex gap-2 overflow-x-auto px-10 pt-4">
+        <div className="scroll-slim flex gap-2 overflow-x-auto px-6 pt-3 md:px-10 md:pt-4">
           {jobs.map((job) => (
             <JobChip
               key={job.id}
@@ -253,9 +257,9 @@ export function OutputPanel({
         </div>
       )}
 
-      <div className="flex flex-1 items-center justify-center px-10 py-8">
+      <div className="flex min-h-0 flex-1 flex-col px-6 py-5 md:px-10 md:py-8">
         {!selectedJob && (
-          <div className="max-w-sm text-center">
+          <div className="m-auto max-w-sm text-center">
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface text-faint shadow-sm ring-1 ring-line">
               <ImageIcon width={26} height={26} />
             </div>
@@ -271,13 +275,15 @@ export function OutputPanel({
         )}
 
         {selectedJob && (selectedJob.status === 'queued' || selectedJob.status === 'running') && (
-          <div className="flex w-full max-w-md flex-col items-center">
-            <PreviewFrame aspect={aspect} safeArea={showSafe}>
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-black">
-                <div className="h-full w-full animate-pulse-soft bg-[radial-gradient(circle_at_50%_30%,rgba(254,55,69,0.25),transparent_60%)]" />
-              </div>
-            </PreviewFrame>
-            <div className="mt-7 w-full max-w-xs rounded-2xl border border-line bg-surface p-4">
+          <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col items-center">
+            <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+              <PreviewFrame aspect={aspect} safeArea={showSafe}>
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-black">
+                  <div className="h-full w-full animate-pulse-soft bg-[radial-gradient(circle_at_50%_30%,rgba(254,55,69,0.25),transparent_60%)]" />
+                </div>
+              </PreviewFrame>
+            </div>
+            <div className="mt-4 w-full max-w-xs shrink-0 rounded-2xl border border-line bg-surface p-4">
               {selectedJob.status === 'queued' && (
                 <p className="mb-3 text-center text-[13px] font-semibold text-muted">
                   Queued — waiting for the current render…
@@ -292,25 +298,27 @@ export function OutputPanel({
         )}
 
         {selectedJob && selectedJob.status === 'done' && asset && (
-          <div className="flex animate-fade-up flex-col items-center">
-            <PreviewFrame aspect={aspect} safeArea={showSafe}>
-              {asset.kind === 'image' ? (
-                <img src={asset.url} alt="Generated verse ad" className="h-full w-full object-contain" />
-              ) : (
-                <video
-                  src={asset.url}
-                  className="h-full w-full object-contain"
-                  controls
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                />
-              )}
-            </PreviewFrame>
+          <div className="flex min-h-0 w-full flex-1 animate-fade-up flex-col items-center">
+            <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+              <PreviewFrame aspect={aspect} safeArea={showSafe}>
+                {asset.kind === 'image' ? (
+                  <img src={asset.url} alt="Generated verse ad" className="h-full w-full object-contain" />
+                ) : (
+                  <video
+                    src={asset.url}
+                    className="h-full w-full object-contain"
+                    controls
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                )}
+              </PreviewFrame>
+            </div>
 
-            <div className="mt-6 flex flex-col items-center gap-3">
-              <div className="flex items-center gap-3">
+            <div className="mt-4 flex shrink-0 flex-col items-center gap-3">
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 <Button variant="dark" onClick={download}>
                   <Download /> Download {asset.ext.toUpperCase()}
                 </Button>
@@ -341,7 +349,7 @@ export function OutputPanel({
         )}
 
         {selectedJob && selectedJob.status === 'error' && (
-          <div className="max-w-sm text-center">
+          <div className="m-auto max-w-sm text-center">
             <h2 className="mb-2 text-[18px] font-bold text-ink">Generation failed</h2>
             <p className="mb-5 text-[14px] leading-relaxed text-muted">{selectedJob.error}</p>
             <Button variant="secondary" onClick={studio.generate}>
@@ -352,7 +360,7 @@ export function OutputPanel({
       </div>
 
       {selectedJob && (
-        <div className="px-10 pb-6 text-center">
+        <div className="shrink-0 px-6 pb-3 text-center md:px-10 md:pb-6">
           <p className="text-[12px] text-faint">
             {config.brand.name} · rendered in your browser
           </p>
