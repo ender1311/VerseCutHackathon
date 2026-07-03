@@ -23,14 +23,27 @@ export function hasWebGPU(): boolean {
   return typeof navigator !== 'undefined' && 'gpu' in navigator;
 }
 
+export type TtsDevice = 'webgpu' | 'wasm';
+export type TtsDtype = 'fp32' | 'q8';
+
+/**
+ * Kokoro's quantized `q8` weights produce garbled/gibberish audio on the
+ * transformers.js WebGPU backend — kokoro-js recommends `fp32` for WebGPU.
+ * On WASM, `q8` is the documented default: correct and ~4x smaller. So pick the
+ * dtype by device rather than always using q8.
+ */
+export function dtypeForDevice(device: TtsDevice): TtsDtype {
+  return device === 'webgpu' ? 'fp32' : 'q8';
+}
+
 async function getModel(onProgress?: (pct: number) => void): Promise<unknown> {
   if (modelPromise) return modelPromise;
   status = 'loading';
   modelPromise = (async () => {
     const { KokoroTTS } = await import('kokoro-js');
-    const device = hasWebGPU() ? 'webgpu' : 'wasm';
+    const device: TtsDevice = hasWebGPU() ? 'webgpu' : 'wasm';
     const model = await KokoroTTS.from_pretrained(MODEL_ID, {
-      dtype: 'q8',
+      dtype: dtypeForDevice(device),
       device,
       progress_callback: (p: { status?: string; loaded?: number; total?: number }) => {
         if (p?.status === 'progress' && p.total) {

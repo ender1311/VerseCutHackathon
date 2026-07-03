@@ -425,7 +425,7 @@ export function InputPanel({
                       )}
                       <p className="mt-2 text-[12px] text-faint">
                         Reads the verse aloud and ducks the music under it. The voice model
-                        (~80&nbsp;MB) downloads once, then is cached.
+                        downloads once (larger on GPU-accelerated browsers), then is cached.
                       </p>
                     </>
                   )}
