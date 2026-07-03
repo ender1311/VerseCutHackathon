@@ -249,7 +249,7 @@ export function composeFrame(
   const label = opts.versionAbbreviation
     ? `${refText}  ·  ${opts.versionAbbreviation}`
     : refText;
-  const refFamily = casedScript ? 'Plus Jakarta Sans' : vf.family;
+  const refFamily = casedScript ? 'aktiv-grotesk' : vf.family;
   const refFontAt = (px: number) => `700 ${px}px '${refFamily}', system-ui, sans-serif`;
   const fittedRef = fitTextSize(ctx, label, textMaxWidth, refSize, refFontAt, casedScript ? 0.08 : 0);
   const lsY = baselineY - lineHeight + refGap * 0.7;
@@ -310,7 +310,7 @@ function composePromo(ctx: CanvasRenderingContext2D, opts: ComposeOptions) {
   const detail = easeOut(Math.min(1, Math.max(0, (t - 0.3) / 0.5)));
   const casedScript =
     vf.script === 'latin' || vf.script === 'cyrillic' || vf.script === 'greek';
-  const uiFamily = casedScript ? 'Plus Jakarta Sans' : vf.family;
+  const uiFamily = casedScript ? 'aktiv-grotesk' : vf.family;
 
   ctx.clearRect(0, 0, w, h);
 
@@ -444,6 +444,8 @@ export async function ensureFontsReady() {
   if (!('fonts' in document)) return;
   try {
     await Promise.all([
+      document.fonts.load("400 80px 'aktiv-grotesk'"),
+      document.fonts.load("700 32px 'aktiv-grotesk'"),
       document.fonts.load("600 80px 'Fraunces'"),
       document.fonts.load("700 32px 'Plus Jakarta Sans'"),
     ]);

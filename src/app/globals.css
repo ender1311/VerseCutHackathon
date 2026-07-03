@@ -1,5 +1,13 @@
 @import 'tailwindcss';
 
+/* Aktiv Grotesk (Adobe Fonts / Typekit) — the overlay font for produced assets
+   (verse text, reference, template headlines). Loaded for canvas via
+   document.fonts (see ensureFontsReady / loadVerseFont). */
+@font-face { font-family: "aktiv-grotesk"; font-display: auto; font-style: normal; font-weight: 400; src:url("https://use.typekit.net/af/ab3e12/000000000000000077359d4f/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n4&v=3") format("woff2"),url("https://use.typekit.net/af/ab3e12/000000000000000077359d4f/30/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n4&v=3") format("woff"); }
+@font-face { font-family: "aktiv-grotesk"; font-display: auto; font-style: italic; font-weight: 400; src:url("https://use.typekit.net/af/951aca/000000000000000077359d51/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=i4&v=3") format("woff2"),url("https://use.typekit.net/af/951aca/000000000000000077359d51/30/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=i4&v=3") format("woff"); }
+@font-face { font-family: "aktiv-grotesk"; font-display: auto; font-style: normal; font-weight: 700; src:url("https://use.typekit.net/af/a798a9/000000000000000077359d55/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff2"),url("https://use.typekit.net/af/a798a9/000000000000000077359d55/30/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff"); }
+@font-face { font-family: "aktiv-grotesk"; font-display: auto; font-style: italic; font-weight: 700; src:url("https://use.typekit.net/af/8e3d9f/000000000000000077359d58/30/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=i7&v=3") format("woff2"),url("https://use.typekit.net/af/8e3d9f/000000000000000077359d58/30/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=i7&v=3") format("woff"); }
+
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Fraunces', ui-serif, Georgia, serif;

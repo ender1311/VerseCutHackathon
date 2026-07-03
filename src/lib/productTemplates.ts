@@ -72,9 +72,9 @@ export const IPHONE_14_PRO: DeviceFrame = {
   screenSlot: { x: 59.7, y: 52.5, w: 931.8, h: 2016.5, radius: 92 },
 };
 
-// Substitute sans stack (real headline font Aktiv Grotesk is proprietary; falls
-// back to the closest available grotesk/helvetica).
-const SANS = "'Aktiv Grotesk', 'Helvetica Neue', Arial, sans-serif";
+// Aktiv Grotesk (Adobe Fonts / Typekit) — loaded via @font-face in globals.css
+// and ensured before canvas draw (templateCompositor → ensureFontsReady).
+const SANS = "'aktiv-grotesk', 'Helvetica Neue', Arial, sans-serif";
 
 function deviceRectFor(canvasW: number, y: number): Rect {
   return { x: Math.round((canvasW - IPHONE_14_PRO.size.w) / 2), y, w: IPHONE_14_PRO.size.w, h: IPHONE_14_PRO.size.h };

@@ -94,7 +94,8 @@ function spec(script: Script, languageId?: string): FontSpec {
       // Fraunces lacks these; Noto Serif covers Latin/Cyrillic/Greek.
       return { family: 'Noto Serif', googleFamily: 'Noto+Serif:ital,wght@0,400..700;1,400..600', rtl: false };
     default:
-      return { family: 'Fraunces', googleFamily: null, rtl: false };
+      // Latin (and the default): Aktiv Grotesk, loaded via @font-face in globals.css.
+      return { family: 'aktiv-grotesk', googleFamily: null, rtl: false };
   }
 }
 
