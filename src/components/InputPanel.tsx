@@ -413,10 +413,8 @@ export function InputPanel({
             </div>
           </CollapsibleSection>
         )}
-      </div>
 
-      {/* Sticky footer: collapsible output settings + generate */}
-      <div className="border-t border-line bg-surface px-7 pt-4 pb-5">
+        {/* OUTPUT */}
         <CollapsibleSection
           title="Output"
           summary={outputSummary}
@@ -509,7 +507,10 @@ export function InputPanel({
             </div>
           )}
         </CollapsibleSection>
+      </div>
 
+      {/* Sticky footer: generate */}
+      <div className="border-t border-line bg-surface px-7 pt-4 pb-5">
         <p className="mb-2 text-center text-[12px] text-faint">
           Estimated build time: ~{studio.estimateSec}s
           {rendering && ' · renders in the background — keep editing'}
