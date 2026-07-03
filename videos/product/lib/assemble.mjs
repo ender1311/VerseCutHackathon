@@ -3,10 +3,15 @@
 // text/graphics are rendered to PNG with ImageMagick (`magick`) and overlaid.
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const FONT = process.env.PM_FONT || '/System/Library/Fonts/Supplemental/Arial.ttf';
-const FONT_BOLD = process.env.PM_FONT_BOLD || '/System/Library/Fonts/Supplemental/Arial Bold.ttf';
+// Aktiv Grotesk is the brand overlay font (static weights instanced from the
+// Bible app's variable font). Bundled alongside the pipeline so renders match
+// the studio's in-app assets without extra setup; PM_FONT* still override.
+const FONTS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'fonts');
+const FONT = process.env.PM_FONT || join(FONTS_DIR, 'AktivGrotesk-Regular.ttf');
+const FONT_BOLD = process.env.PM_FONT_BOLD || join(FONTS_DIR, 'AktivGrotesk-Bold.ttf');
 const BRAND = '#fe3745';
 
 function magick(args) {

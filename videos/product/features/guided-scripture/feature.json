@@ -1,0 +1,41 @@
+{
+  "id": "guided-scripture",
+  "title": "Guided Scripture",
+  "subtitle": "See the Word come alive",
+  "cta": "Download the Bible App",
+  "env": "production",
+  "auth": false,
+  "capture": {
+    "prep": "features/guided-scripture/shots/prep.yaml",
+    "record": "features/guided-scripture/shots/record.yaml",
+    "trim": { "start": 0, "duration": 5 }
+  },
+  "music": null,
+  "voices": {
+    "en": "af_heart",
+    "es": "ef_dora",
+    "pt": "pf_dora",
+    "fr": "ff_siwis"
+  },
+  "scripts": {
+    "short": {
+      "en": [
+        { "text": "Experience Scripture like never before with Guided Scripture.", "caption": "Guided Scripture" },
+        { "text": "Cinematic reflections bring each verse to life.", "caption": "The Word, alive" },
+        { "text": "Watch it free in the Bible App.", "caption": "Free — download today" }
+      ]
+    },
+    "long": {
+      "en": [
+        { "text": "Meet Guided Scripture in the YouVersion Bible App.", "caption": "Guided Scripture" },
+        { "text": "Each reflection sets the Word against stunning imagery.", "caption": "The Word, alive" },
+        { "text": "Slow down, and let a single verse sink in.", "caption": "Slow down and reflect" },
+        { "text": "Beautiful film and narration guide your time in Scripture.", "caption": "Cinematic reflections" },
+        { "text": "It's a fresh way to meet a familiar passage.", "caption": "A fresh way in" },
+        { "text": "Just a few minutes to refocus your heart.", "caption": "A few quiet minutes" },
+        { "text": "Come back for a new reflection anytime.", "caption": "Something new daily" },
+        { "text": "It's completely free. Download the Bible App today.", "caption": "Free — download today" }
+      ]
+    }
+  }
+}

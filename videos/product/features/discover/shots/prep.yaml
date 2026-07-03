@@ -1,0 +1,36 @@
+appId: tv.lifechurch.bible
+name: Discover prep (navigate to Discover — not recorded)
+# Clears state, dismisses onboarding as a guest, opens the Discover tab, and
+# dismisses the first-visit search coach-mark so recording starts on the grid.
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - clearState
+      - launchApp:
+          arguments:
+            environment: production
+      - runFlow:
+          when:
+            visible: "Allow Paste"
+          commands:
+            - tapOn: "Allow Paste"
+      - runFlow:
+          when:
+            visible: "Seek God"
+          commands:
+            - tapOn:
+                id: "DISMISS_BUTTON"
+      - runFlow:
+          when:
+            visible: "Enable Verse of the Day?"
+          commands:
+            - tapOn: "Not Now"
+- tapOn:
+    id: discover_tab
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    point: "50%,17%"
+- waitForAnimationToEnd:
+    timeout: 1200

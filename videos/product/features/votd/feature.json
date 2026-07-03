@@ -1,0 +1,40 @@
+{
+  "id": "votd",
+  "title": "Verse of the Day",
+  "subtitle": "A fresh verse every morning",
+  "cta": "Download the Bible App",
+  "env": "production",
+  "auth": false,
+  "capture": {
+    "prep": "features/votd/shots/prep.yaml",
+    "record": "features/votd/shots/record.yaml"
+  },
+  "music": null,
+  "voices": {
+    "en": "af_heart",
+    "es": "ef_dora",
+    "pt": "pf_dora",
+    "fr": "ff_siwis"
+  },
+  "scripts": {
+    "short": {
+      "en": [
+        { "text": "Start each day with the Verse of the Day in the Bible App.", "caption": "Verse of the Day" },
+        { "text": "A fresh Scripture every morning, with a beautiful image to share.", "caption": "A fresh verse daily" },
+        { "text": "Get it free. Download the Bible App.", "caption": "Free — download today" }
+      ]
+    },
+    "long": {
+      "en": [
+        { "text": "Meet the Verse of the Day in the YouVersion Bible App.", "caption": "Verse of the Day" },
+        { "text": "Every morning, a new verse meets you right where you are.", "caption": "A new verse every morning" },
+        { "text": "Read it, and let it set the tone for your whole day.", "caption": "Set the tone for your day" },
+        { "text": "Save the verses that speak to you, and come back anytime.", "caption": "Save your favorites" },
+        { "text": "Turn any verse into a beautiful, shareable image.", "caption": "Make it shareable" },
+        { "text": "Pick a background and send it to a friend who needs it.", "caption": "Share with friends" },
+        { "text": "Build a simple daily rhythm in God's Word.", "caption": "A daily rhythm" },
+        { "text": "It's completely free. Download the Bible App today.", "caption": "Free — download today" }
+      ]
+    }
+  }
+}

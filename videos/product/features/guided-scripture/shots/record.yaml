@@ -1,0 +1,8 @@
+appId: tv.lifechurch.bible
+name: Guided Scripture record (the on-screen journey — recorded)
+# The reflection autoplays cinematic footage (forest, sky) with the verse. We
+# capture only the short cinematic opening; assemble loops it to cover the
+# narration, so the later talking-head segment never appears in the ad.
+---
+- waitForAnimationToEnd:
+    timeout: 2800

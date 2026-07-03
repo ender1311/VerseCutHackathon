@@ -1,0 +1,40 @@
+{
+  "id": "guided-prayer",
+  "title": "Guided Prayer",
+  "subtitle": "A few quiet minutes with God",
+  "cta": "Download the Bible App",
+  "env": "production",
+  "auth": false,
+  "capture": {
+    "prep": "features/guided-prayer/shots/prep.yaml",
+    "record": "features/guided-prayer/shots/record.yaml"
+  },
+  "music": null,
+  "voices": {
+    "en": "af_heart",
+    "es": "ef_dora",
+    "pt": "pf_dora",
+    "fr": "ff_siwis"
+  },
+  "scripts": {
+    "short": {
+      "en": [
+        { "text": "Take a quiet moment with Guided Prayer in the Bible App.", "caption": "Guided Prayer" },
+        { "text": "Let Scripture lead you, one gentle step at a time.", "caption": "One step at a time" },
+        { "text": "Start praying today. Download the Bible App.", "caption": "Free — download today" }
+      ]
+    },
+    "long": {
+      "en": [
+        { "text": "Meet Guided Prayer in the YouVersion Bible App.", "caption": "Guided Prayer" },
+        { "text": "Wherever you are, God is near — and He's ready to listen.", "caption": "God is near" },
+        { "text": "Each prayer walks you through Scripture, gently.", "caption": "Led by Scripture" },
+        { "text": "Pause on a verse, and let it become your prayer.", "caption": "Make it your prayer" },
+        { "text": "Honor God, bring Him your thoughts, and give thanks.", "caption": "Praise and thanks" },
+        { "text": "Just a few minutes can steady your whole day.", "caption": "A few quiet minutes" },
+        { "text": "Make prayer a daily rhythm, wherever you are.", "caption": "A daily rhythm" },
+        { "text": "It's completely free. Download the Bible App today.", "caption": "Free — download today" }
+      ]
+    }
+  }
+}

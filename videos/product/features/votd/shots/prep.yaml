@@ -1,0 +1,34 @@
+appId: tv.lifechurch.bible
+name: VOTD prep (navigate to Today — not recorded)
+# Clears state each run so the Today tab always starts from the default state
+# with the Verse of the Day card at the top (VOTD is viewable without an
+# account). Dismisses onboarding + the VOTD-reminder prompt as a guest.
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - clearState
+      - launchApp:
+          arguments:
+            environment: production
+      - runFlow:
+          when:
+            visible: "Allow Paste"
+          commands:
+            - tapOn: "Allow Paste"
+      - runFlow:
+          when:
+            visible: "Seek God"
+          commands:
+            - tapOn:
+                id: "DISMISS_BUTTON"
+      - runFlow:
+          when:
+            visible: "Enable Verse of the Day?"
+          commands:
+            - tapOn: "Not Now"
+- extendedWaitUntil:
+    visible: "Verse of the Day"
+    timeout: 25000
+- waitForAnimationToEnd:
+    timeout: 1500

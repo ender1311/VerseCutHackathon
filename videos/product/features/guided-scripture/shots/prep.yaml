@@ -1,0 +1,31 @@
+appId: tv.lifechurch.bible
+name: Guided Scripture prep (open the reflection — not recorded)
+# Clears state, dismisses onboarding as a guest, opens the Guided Scripture card
+# from the Today feed. The reflection is a cinematic verse film that autoplays.
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - clearState
+      - launchApp:
+          arguments:
+            environment: production
+      - runFlow:
+          when:
+            visible: "Allow Paste"
+          commands:
+            - tapOn: "Allow Paste"
+      - runFlow:
+          when:
+            visible: "Seek God"
+          commands:
+            - tapOn:
+                id: "DISMISS_BUTTON"
+      - runFlow:
+          when:
+            visible: "Enable Verse of the Day?"
+          commands:
+            - tapOn: "Not Now"
+- tapOn: "Guided Scripture"
+- waitForAnimationToEnd:
+    timeout: 1200

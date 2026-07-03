@@ -1,0 +1,22 @@
+appId: tv.lifechurch.bible
+name: VOTD record (the on-screen journey — recorded)
+# Starts on the Today tab with the Verse of the Day card featured at the top
+# (from prep). The card itself — the verse over a photographic background with
+# its reference and engagement — is the canonical Verse of the Day. We hold on
+# it, then gently scroll the feed and settle back so the card stays in frame.
+# Fully robust: no taps into detail views whose layout shifts with verse length.
+---
+- waitForAnimationToEnd:
+    timeout: 2600
+- swipe:
+    start: 50%, 72%
+    end: 50%, 50%
+    duration: 1500
+- waitForAnimationToEnd:
+    timeout: 1400
+- swipe:
+    start: 50%, 50%
+    end: 50%, 72%
+    duration: 1500
+- waitForAnimationToEnd:
+    timeout: 2200

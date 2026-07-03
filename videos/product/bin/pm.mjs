@@ -8,6 +8,7 @@
 //
 // Flags: --langs en,es | --formats portrait,landscape | --lengths short,long
 //        --device <udid> | --no-capture
+import { execFileSync } from 'node:child_process';
 import { readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,9 +50,22 @@ async function capture() {
   // Navigate to the starting screen first (not recorded), then record only the
   // on-screen journey so the clip is all app content (no launch/black frames).
   if (def.capture.prep) runFlow(udid, join(ROOT, def.capture.prep));
-  await recordWhile(udid, clip, async () => {
+  // When the captured screen is an autoplaying video (e.g. a cinematic
+  // reflection), record to a raw file and trim to the clean opening segment;
+  // assemble loops the trimmed clip to cover the narration. This keeps later
+  // segments (talking head, credits) out of the ad.
+  const trim = def.capture.trim;
+  const raw = trim ? join(work, 'capture-raw.mov') : clip;
+  await recordWhile(udid, raw, async () => {
     runFlow(udid, join(ROOT, def.capture.record || def.capture.flow));
   });
+  if (trim) {
+    execFileSync('ffmpeg', [
+      '-y', '-ss', String(trim.start ?? 0), '-i', raw, '-t', String(trim.duration),
+      '-an', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-preset', 'veryfast', '-crf', '20',
+      clip,
+    ], { stdio: ['ignore', 'ignore', 'ignore'] });
+  }
   console.log(`  ✓ clip → ${clip}`);
 }
 

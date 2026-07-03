@@ -1,0 +1,40 @@
+{
+  "id": "discover",
+  "title": "Discover",
+  "subtitle": "Meet the moment you're in",
+  "cta": "Download the Bible App",
+  "env": "production",
+  "auth": false,
+  "capture": {
+    "prep": "features/discover/shots/prep.yaml",
+    "record": "features/discover/shots/record.yaml"
+  },
+  "music": null,
+  "voices": {
+    "en": "af_heart",
+    "es": "ef_dora",
+    "pt": "pf_dora",
+    "fr": "ff_siwis"
+  },
+  "scripts": {
+    "short": {
+      "en": [
+        { "text": "Not sure where to start? Discover meets you in the moment.", "caption": "Discover" },
+        { "text": "Find plans, videos, and verses for whatever you're facing.", "caption": "Content for every moment" },
+        { "text": "Explore it free in the Bible App.", "caption": "Free — download today" }
+      ]
+    },
+    "long": {
+      "en": [
+        { "text": "Open Discover in the YouVersion Bible App.", "caption": "Discover" },
+        { "text": "However you're feeling, there's something here for you.", "caption": "Meet the moment" },
+        { "text": "Search Bible verses, plans, images, and videos.", "caption": "Search anything" },
+        { "text": "Browse by what's on your heart — hope, peace, anxiety, and more.", "caption": "Browse by emotion" },
+        { "text": "Tap a topic and find Scripture that speaks to it.", "caption": "Verses that speak" },
+        { "text": "Save what helps, and come back anytime.", "caption": "Save for later" },
+        { "text": "Find something new in God's Word every day.", "caption": "Something new daily" },
+        { "text": "It's completely free. Download the Bible App today.", "caption": "Free — download today" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+appId: tv.lifechurch.bible
+name: Discover record (the on-screen journey — recorded)
+# Starts on the Discover grid (from prep): Search + category chips + a grid of
+# topic/emotion cards. We hold, then slowly scroll the grid to reveal the range
+# of topics. Robust: only scrolls, no taps into detail views.
+---
+- waitForAnimationToEnd:
+    timeout: 1800
+- swipe:
+    start: 50%, 80%
+    end: 50%, 38%
+    duration: 1700
+- waitForAnimationToEnd:
+    timeout: 1200
+- swipe:
+    start: 50%, 80%
+    end: 50%, 38%
+    duration: 1700
+- waitForAnimationToEnd:
+    timeout: 1600

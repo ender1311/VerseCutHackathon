@@ -1,0 +1,31 @@
+appId: tv.lifechurch.bible
+name: Guided Prayer prep (open the prayer — not recorded)
+# Clears state, dismisses onboarding as a guest, opens the Guided Prayer card
+# from the Today feed, landing on the prayer's welcome step.
+---
+- retry:
+    maxRetries: 2
+    commands:
+      - clearState
+      - launchApp:
+          arguments:
+            environment: production
+      - runFlow:
+          when:
+            visible: "Allow Paste"
+          commands:
+            - tapOn: "Allow Paste"
+      - runFlow:
+          when:
+            visible: "Seek God"
+          commands:
+            - tapOn:
+                id: "DISMISS_BUTTON"
+      - runFlow:
+          when:
+            visible: "Enable Verse of the Day?"
+          commands:
+            - tapOn: "Not Now"
+- tapOn: "Guided Prayer"
+- waitForAnimationToEnd:
+    timeout: 3000

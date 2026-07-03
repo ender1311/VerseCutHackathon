@@ -1,0 +1,18 @@
+appId: tv.lifechurch.bible
+name: Guided Prayer record (the on-screen journey — recorded)
+# Starts on the prayer's welcome step (from prep). We hold on the welcome, then
+# swipe up to walk through the guided steps (a Scripture passage turned into
+# prayer). Robust: swipe-up advances the flow; no fragile detail taps.
+---
+- waitForAnimationToEnd:
+    timeout: 2400
+- swipe:
+    direction: UP
+    duration: 900
+- waitForAnimationToEnd:
+    timeout: 2600
+- swipe:
+    direction: UP
+    duration: 900
+- waitForAnimationToEnd:
+    timeout: 2400
