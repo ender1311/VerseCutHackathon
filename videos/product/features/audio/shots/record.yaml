@@ -1,0 +1,8 @@
+appId: tv.lifechurch.bible
+name: Audio Bible record (the on-screen journey — recorded)
+# Starts with the Audio Bible already playing (from prep): the transport shows
+# playing and the current verse highlights in time. We simply hold and let it
+# read — assemble loops this to cover the narration.
+---
+- waitForAnimationToEnd:
+    timeout: 6000

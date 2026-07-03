@@ -1,0 +1,40 @@
+{
+  "id": "audio",
+  "title": "Audio Bible",
+  "subtitle": "Hear the Word, anywhere",
+  "cta": "Download the Bible App",
+  "env": "production",
+  "auth": false,
+  "capture": {
+    "prep": "features/audio/shots/prep.yaml",
+    "record": "features/audio/shots/record.yaml"
+  },
+  "music": null,
+  "voices": {
+    "en": "af_heart",
+    "es": "ef_dora",
+    "pt": "pf_dora",
+    "fr": "ff_siwis"
+  },
+  "scripts": {
+    "short": {
+      "en": [
+        { "text": "Listen to the Bible with the free Audio Bible.", "caption": "Audio Bible" },
+        { "text": "Press play and follow along, verse by verse.", "caption": "Follow along" },
+        { "text": "Hear the Word free in the Bible App.", "caption": "Free — download today" }
+      ]
+    },
+    "long": {
+      "en": [
+        { "text": "Meet the Audio Bible in the YouVersion Bible App.", "caption": "Audio Bible" },
+        { "text": "Press play and let Scripture read itself to you.", "caption": "Press play" },
+        { "text": "Follow along as each verse highlights in time.", "caption": "Follow along" },
+        { "text": "Choose a narrator and a translation you love.", "caption": "Your narrator, your version" },
+        { "text": "Listen while you drive, walk, or rest your eyes.", "caption": "Anywhere, anytime" },
+        { "text": "Adjust the speed to match your pace.", "caption": "Set your pace" },
+        { "text": "Make hearing God's Word part of every day.", "caption": "A daily rhythm" },
+        { "text": "It's completely free. Download the Bible App today.", "caption": "Free — download today" }
+      ]
+    }
+  }
+}
