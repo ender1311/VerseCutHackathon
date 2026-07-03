@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { useStudio } from '../lib/useStudio';
 import type { RightView } from './RightPanel';
-import { ChevronDown, ImageIcon, Play, Spinner, VideoIcon, XMark } from './icons';
+import { ChevronDown, ImageIcon, Play, Spinner, UploadCloud, VideoIcon, XMark } from './icons';
 import { Button, CollapsibleSection, FieldLabel, Segmented, Select, Stepper, UploadField } from './ui';
 import { SOCIAL_FORMATS } from '../lib/socialFormats';
 import { deriveSource } from '../lib/assetTaxonomy';
@@ -141,11 +141,28 @@ export function InputPanel({
   onBrowse: (view: RightView) => void;
 }) {
   const rendering = studio.isRendering;
-  const sharedVideo = studio.sharedBg?.kind === 'video' ? studio.sharedBg : null;
-  const sharedImg = studio.sharedBg?.kind === 'image' ? studio.sharedBg : null;
-  const sharedYV = sharedImg && deriveSource(sharedImg.label) === 'youversion' ? sharedImg : null;
-  const sharedUnsplash = sharedImg && deriveSource(sharedImg.label) !== 'youversion' ? sharedImg : null;
   const hasBgSource = !!studio.imageFile || !!studio.videoFile || !!studio.sharedBg;
+  // Unified summary of the active background source (upload or library pick), or
+  // null when the gradient is the background.
+  const sharedSourceLabel = (label: string, kind: 'image' | 'video') => {
+    const src = deriveSource(label);
+    if (src === 'youversion') return 'YouVersion background';
+    if (src === 'unsplash') return 'Unsplash background';
+    return kind === 'video' ? 'Video background' : 'Image background';
+  };
+  const currentBg: { icon: React.ReactNode; title: string; subtitle: string; clear: () => void } | null =
+    studio.imageFile
+      ? { icon: <ImageIcon />, title: studio.imageFile.name, subtitle: 'Uploaded image', clear: () => studio.setImageFile(null) }
+      : studio.videoFile
+        ? { icon: <VideoIcon />, title: studio.videoFile.name, subtitle: 'Uploaded video', clear: () => studio.setVideoFile(null) }
+        : studio.sharedBg
+          ? {
+              icon: studio.sharedBg.kind === 'video' ? <VideoIcon /> : <ImageIcon />,
+              title: studio.sharedBg.label,
+              subtitle: sharedSourceLabel(studio.sharedBg.label, studio.sharedBg.kind),
+              clear: studio.clearSharedBg,
+            }
+          : null;
 
   const [sections, setSections] = useState<SectionState>(DEFAULT_SECTIONS);
   useEffect(() => {
@@ -265,90 +282,51 @@ export function InputPanel({
           open={sections.background}
           onToggle={() => toggle('background')}
         >
-          <div className="grid grid-cols-1 gap-x-5 gap-y-6 @[560px]:grid-cols-2">
-            <div>
-              <UploadField
-                label="Background image"
-                hint="JPG / PNG"
-                accept="image/png,image/jpeg"
-                icon={<ImageIcon />}
-                file={studio.imageFile}
-                onSelect={(f) => studio.setImageFile(f)}
-                onClear={() => studio.setImageFile(null)}
+          <div className="flex flex-col gap-3">
+            {/* Current background (a picked image/video, or the gradient default) */}
+            {currentBg && (
+              <SelectedChip
+                icon={currentBg.icon}
+                title={currentBg.title}
+                subtitle={currentBg.subtitle}
+                onClear={currentBg.clear}
               />
-            </div>
+            )}
 
-            <div>
-              <UploadField
-                label="Background video"
-                hint="MP4 / WEBM / MOV"
-                accept="video/mp4,video/webm,video/quicktime"
-                icon={<VideoIcon />}
-                file={studio.videoFile}
-                onSelect={(f) => studio.setVideoFile(f)}
-                onClear={() => studio.setVideoFile(null)}
-              />
-            </div>
-
-            <div>
-              <FieldLabel hint="Reusable videos">Video library</FieldLabel>
-              {sharedVideo && (
-                <SelectedChip
-                  icon={<VideoIcon />}
-                  title={sharedVideo.label}
-                  subtitle="Shared video background"
-                  onClear={studio.clearSharedBg}
-                />
-              )}
-              <BrowseEntry
-                icon={<VideoIcon />}
-                title="Browse the video library"
-                hint="Reusable team videos"
-                onClick={() => onBrowse('videos')}
-              />
-            </div>
-
-            <div>
-              <FieldLabel hint="Bible App backgrounds">YouVersion</FieldLabel>
-              {sharedYV && (
-                <SelectedChip
-                  icon={<ImageIcon />}
-                  title={sharedYV.label}
-                  subtitle="YouVersion background"
-                  onClear={studio.clearSharedBg}
-                />
-              )}
+            {/* Two ways to set one: browse the shared library, or upload a file */}
+            <div className="grid grid-cols-1 gap-3 @[420px]:grid-cols-2">
               <BrowseEntry
                 icon={<ImageIcon />}
-                title="Browse YouVersion backgrounds"
-                hint="By language · verse backgrounds"
+                title="Browse library"
+                hint="YouVersion · Unsplash · Videos"
                 onClick={() => onBrowse('youversion')}
               />
-            </div>
-
-            <div>
-              <FieldLabel hint="Photo backgrounds">Unsplash</FieldLabel>
-              {sharedUnsplash && (
-                <SelectedChip
-                  icon={<ImageIcon />}
-                  title={sharedUnsplash.label}
-                  subtitle="Unsplash background"
-                  onClear={studio.clearSharedBg}
+              <label className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition hover:border-faint">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,video/mp4,video/webm,video/quicktime"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      if (f.type.startsWith('video')) studio.setVideoFile(f);
+                      else studio.setImageFile(f);
+                    }
+                    e.target.value = '';
+                  }}
                 />
-              )}
-              <BrowseEntry
-                icon={<ImageIcon />}
-                title="Browse Unsplash backgrounds"
-                hint="Reusable team photos"
-                onClick={() => onBrowse('unsplash')}
-              />
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-line-soft text-muted">
+                  <UploadCloud />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[14px] font-semibold text-ink">Upload</span>
+                  <span className="block text-[12px] text-faint">Image or video</span>
+                </span>
+              </label>
             </div>
 
-            {!hasBgSource && (
-              <div className="@[560px]:col-span-2">
-                <GradientPicker studio={studio} />
-              </div>
-            )}
+            {/* Gradient — the default background when no image/video is set */}
+            {!hasBgSource && <GradientPicker studio={studio} />}
           </div>
         </CollapsibleSection>
 
