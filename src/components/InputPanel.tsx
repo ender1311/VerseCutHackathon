@@ -4,6 +4,7 @@ import type { RightView } from './RightPanel';
 import { ChevronDown, ImageIcon, Play, Spinner, UploadCloud, VideoIcon, XMark } from './icons';
 import { Button, CollapsibleSection, FieldLabel, Segmented, Select, Stepper, UploadField } from './ui';
 import { SOCIAL_FORMATS } from '../lib/socialFormats';
+import { gradientFromHex, normalizeHex } from '../lib/gradients';
 import { deriveSource } from '../lib/assetTaxonomy';
 import {
   DEFAULT_SECTIONS,
@@ -79,8 +80,12 @@ function SelectedChip({
 
 function GradientPicker({ studio }: { studio: Studio }) {
   const [open, setOpen] = useState(false);
+  const isCustom = !!studio.customColor;
+  const customPreset = studio.customColor ? gradientFromHex(studio.customColor) : null;
   const current =
-    studio.gradients.find((g) => g.id === studio.gradientId) ?? studio.gradients[0];
+    customPreset ??
+    studio.gradients.find((g) => g.id === studio.gradientId) ??
+    studio.gradients[0];
   const swatch = (g: { from: string; via: string; to: string }) =>
     `linear-gradient(135deg, ${g.from} 0%, ${g.via} 50%, ${g.to} 100%)`;
 
@@ -100,32 +105,72 @@ function GradientPicker({ studio }: { studio: Studio }) {
           <span className="block text-[14px] font-semibold text-ink">
             Background gradient
           </span>
-          <span className="block text-[12px] text-faint">{current.name}</span>
+          <span className="block text-[12px] text-faint">
+            {isCustom ? `Custom · ${studio.customColor}` : current.name}
+          </span>
         </span>
         <ChevronDown className={`text-faint transition ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="mt-3 grid grid-cols-8 gap-2">
-          {studio.gradients.map((g) => {
-            const selected = studio.gradientId === g.id;
-            return (
-              <button
-                key={g.id}
-                type="button"
-                title={g.name}
-                aria-label={g.name}
-                aria-pressed={selected}
-                onClick={() => studio.setGradientId(g.id)}
-                className={`aspect-square rounded-lg border transition ${
-                  selected
-                    ? 'border-brand ring-2 ring-brand/40'
-                    : 'border-line hover:border-faint'
-                }`}
-                style={{ backgroundImage: swatch(g) }}
+        <>
+          <div className="mt-3 grid grid-cols-8 gap-2">
+            {studio.gradients.map((g) => {
+              const selected = !isCustom && studio.gradientId === g.id;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  title={g.name}
+                  aria-label={g.name}
+                  aria-pressed={selected}
+                  onClick={() => studio.setGradientId(g.id)}
+                  className={`aspect-square rounded-lg border transition ${
+                    selected
+                      ? 'border-brand ring-2 ring-brand/40'
+                      : 'border-line hover:border-faint'
+                  }`}
+                  style={{ backgroundImage: swatch(g) }}
+                />
+              );
+            })}
+          </div>
+          <div
+            className={`mt-3 flex items-center gap-3 rounded-xl border p-3 ${
+              isCustom ? 'border-brand ring-2 ring-brand/30' : 'border-line'
+            }`}
+          >
+            <input
+              type="color"
+              aria-label="Custom background color"
+              value={studio.customColor ?? '#1e40af'}
+              onChange={(e) => studio.setCustomColor(normalizeHex(e.target.value))}
+              className="h-9 w-9 shrink-0 cursor-pointer rounded-lg border border-line bg-transparent p-0"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="text-[14px] font-semibold text-ink">Custom color</div>
+              <input
+                type="text"
+                spellCheck={false}
+                placeholder="#1e40af"
+                defaultValue={studio.customColor ?? ''}
+                onChange={(e) => {
+                  const hex = normalizeHex(e.target.value);
+                  if (hex) studio.setCustomColor(hex);
+                }}
+                className="mt-0.5 w-28 rounded-md border border-line bg-surface px-2 py-1 text-[13px] font-medium text-ink outline-none focus:border-brand"
               />
-            );
-          })}
-        </div>
+            </div>
+            {isCustom && (
+              <button
+                type="button"
+                onClick={() => studio.setGradientId(studio.gradientId)}
+                className="text-[12px] font-semibold text-faint transition hover:text-ink"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

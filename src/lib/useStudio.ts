@@ -76,6 +76,7 @@ interface JobSnapshot {
     cta: string;
     musicFile: File | null;
     gradientId: string;
+    gradientHex: string | null;
   };
 }
 
@@ -117,7 +118,14 @@ export function useStudio() {
   const [durationSec, setDurationSec] = useState<number>(config.output.videoDurationSec);
   const [logoStyle, setLogoStyle] = useState<LogoStyle>(config.brand.defaultLogoStyle);
   const [musicFile, setMusicFile] = useState<File | null>(null);
-  const [gradientId, setGradientId] = useState<string>(DEFAULT_GRADIENT_ID);
+  const [gradientId, setGradientIdState] = useState<string>(DEFAULT_GRADIENT_ID);
+  const [customColor, setCustomColor] = useState<string | null>(null);
+  // Preset and custom color are mutually exclusive: picking a preset clears the
+  // custom color, and vice versa (handled where setCustomColor is called).
+  const setGradientId = useCallback((id: string) => {
+    setGradientIdState(id);
+    setCustomColor(null);
+  }, []);
   const [voiceover, setVoiceoverState] = useState(false);
   const [voiceId, setVoiceId] = useState<string | null>(null);
   const voiceTouched = useRef(false);
@@ -511,6 +519,7 @@ export function useStudio() {
         cta,
         musicFile,
         gradientId,
+        gradientHex: customColor,
       },
     };
 
@@ -569,6 +578,7 @@ export function useStudio() {
     durationSec,
     musicFile,
     gradientId,
+    customColor,
     voiceover,
     voiceId,
     voiceSupportedForLang,
@@ -640,6 +650,8 @@ export function useStudio() {
     gradients: GRADIENTS,
     gradientId,
     setGradientId,
+    customColor,
+    setCustomColor,
     // voiceover
     voiceover,
     setVoiceover,

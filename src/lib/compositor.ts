@@ -60,7 +60,9 @@ function drawGradientBackground(
   h: number,
   preset?: GradientPreset,
 ) {
-  const p = resolveGradient(preset?.id);
+  // Honor a fully-specified preset (e.g. a custom hex-derived one whose id
+  // isn't in the registry); otherwise resolve by id.
+  const p = preset?.from ? preset : resolveGradient(preset?.id);
   const g = ctx.createLinearGradient(0, 0, w, h);
   g.addColorStop(0, p.from);
   g.addColorStop(0.5, p.via);

@@ -59,3 +59,44 @@ const GRADIENT_BY_ID: Record<string, GradientPreset> = Object.fromEntries(
 export function resolveGradient(id?: string | null): GradientPreset {
   return (id && GRADIENT_BY_ID[id]) || GRADIENT_BY_ID[DEFAULT_GRADIENT_ID];
 }
+
+export const CUSTOM_GRADIENT_ID = 'custom';
+
+/** Normalize a user hex to `#rrggbb`, or null if it isn't a valid hex color. */
+export function normalizeHex(input: string): string | null {
+  let h = input.trim().toLowerCase();
+  if (h.startsWith('#')) h = h.slice(1);
+  if (/^[0-9a-f]{3}$/.test(h)) h = h.split('').map((c) => c + c).join('');
+  if (!/^[0-9a-f]{6}$/.test(h)) return null;
+  return `#${h}`;
+}
+
+function toRgb(hex: string): [number, number, number] {
+  const h = hex.slice(1);
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
+const toHex = (rgb: number[]) => `#${rgb.map((c) => clamp(c).toString(16).padStart(2, '0')).join('')}`;
+const scale = (rgb: number[], f: number) => rgb.map((c) => c * f);
+const towardWhite = (rgb: number[], f: number) => rgb.map((c) => c + (255 - c) * f);
+
+/**
+ * Build a rich preset from a single hex color, matching the preset recipe:
+ * a dark-to-color diagonal fill with a lighter accent glow. White verse text +
+ * the contrast scrim stay legible because the fill leans deep.
+ */
+export function gradientFromHex(input: string): GradientPreset {
+  const norm = normalizeHex(input);
+  if (!norm) return GRADIENT_BY_ID[DEFAULT_GRADIENT_ID];
+  const rgb = toRgb(norm);
+  const [r, g, b] = towardWhite(rgb, 0.25);
+  return {
+    id: CUSTOM_GRADIENT_ID,
+    name: 'Custom',
+    from: toHex(scale(rgb, 0.32)),
+    via: toHex(scale(rgb, 0.6)),
+    to: toHex(scale(rgb, 0.14)),
+    glow: `rgba(${clamp(r)},${clamp(g)},${clamp(b)},0.34)`,
+  };
+}

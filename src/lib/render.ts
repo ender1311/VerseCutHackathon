@@ -2,7 +2,7 @@ import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { config, type AspectRatio } from '../config';
 import { composeFrame, ensureFontsReady, type Background } from './compositor';
-import { resolveGradient } from './gradients';
+import { resolveGradient, gradientFromHex } from './gradients';
 import type { Passage } from './bible';
 import { BIBLE_APP_ASSETS, type LogoStyle } from './iconCatalog';
 import { resolveLogoFile } from './logoAssets';
@@ -37,6 +37,8 @@ export interface RenderInput {
   narrationBlob?: Blob | null;
   /** Background gradient preset id (used when no image/video background). */
   gradientId?: string | null;
+  /** Custom background color (hex). Takes precedence over gradientId. */
+  gradientHex?: string | null;
 }
 
 /** The promo template uses the horizontal light lockup; classic uses the chosen style. */
@@ -111,7 +113,10 @@ async function buildBackground(
     return { background: { type: 'video', video }, cleanup: () => {} };
   }
   return {
-    background: { type: 'gradient', preset: resolveGradient(input.gradientId) },
+    background: {
+      type: 'gradient',
+      preset: input.gradientHex ? gradientFromHex(input.gradientHex) : resolveGradient(input.gradientId),
+    },
     cleanup: () => {},
   };
 }
