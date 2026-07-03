@@ -76,6 +76,7 @@ interface JobSnapshot {
     cta: string;
     musicFile: File | null;
     gradientId: string;
+    gradientHex: string | null;
   };
 }
 
