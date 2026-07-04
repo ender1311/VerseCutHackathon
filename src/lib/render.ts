@@ -382,7 +382,7 @@ async function captureCanvas(
       requestAnimationFrame(tick);
     });
 
-    rec.stop();
+    if (rec.state !== 'inactive') rec.stop();
     return await done;
   } finally {
     if (recorder && recorder.state !== 'inactive') recorder.stop();

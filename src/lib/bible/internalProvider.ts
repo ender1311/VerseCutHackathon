@@ -38,7 +38,8 @@ const versionCache = new Map<string, Promise<VersionData>>();
 async function getVersion(versionId: string): Promise<VersionData> {
   let p = versionCache.get(versionId);
   if (!p) {
-    p = fetch(`${BASE}/version.json?id=${versionId}`)
+    const vp = new URLSearchParams({ id: versionId });
+    p = fetch(`${BASE}/version.json?${vp}`)
       .then((r) => {
         if (!r.ok) throw new Error(`version.json ${r.status}`);
         return r.json();
@@ -81,9 +82,8 @@ export class YouVersionInternalProvider implements BibleProvider {
 
   async fetchPassage(query: PassageQuery): Promise<Passage> {
     const chapterRef = `${query.bookId}.${query.chapter}`;
-    const res = await fetch(
-      `${BASE}/chapter.json?id=${query.versionId}&reference=${chapterRef}&format=html`,
-    );
+    const cp = new URLSearchParams({ id: String(query.versionId), reference: chapterRef, format: 'html' });
+    const res = await fetch(`${BASE}/chapter.json?${cp}`);
     if (!res.ok) throw new Error(`chapter.json failed (${res.status})`);
     const data = (await res.json())?.response?.data ?? {};
     const text = extractVerses(
