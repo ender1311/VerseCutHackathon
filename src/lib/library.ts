@@ -29,12 +29,26 @@ function fileName(meta: AdMeta, ext: string): string {
   return `ads/${ref}-${meta.aspect.replace(':', 'x')}.${ext}`;
 }
 
+/**
+ * Strip codec/parameter suffixes from a MIME type (e.g.
+ * `video/mp4;codecs="avc1.42E01E,mp4a.40.2"` → `video/mp4`). MediaRecorder-
+ * produced blobs carry a codecs parameter that the Blob upload token's
+ * `allowedContentTypes` allowlist won't match, which fails the save. Falls back
+ * to a sensible default when the blob has no type.
+ */
+export function baseContentType(type: string, ext: string): string {
+  const base = type.split(';')[0].trim().toLowerCase();
+  if (base) return base;
+  return ext === 'mp4' ? 'video/mp4' : ext === 'webm' ? 'video/webm' : `image/${ext === 'jpg' ? 'jpeg' : 'png'}`;
+}
+
 /** Upload a rendered asset to Blob, then persist its metadata. */
 export async function saveAdToLibrary(asset: RenderedAsset, meta: AdMeta): Promise<SavedAd> {
+  const contentType = baseContentType(asset.blob.type, asset.ext);
   const blob = await upload(fileName(meta, asset.ext), asset.blob, {
     access: 'public',
     handleUploadUrl: '/api/blob/upload',
-    contentType: asset.blob.type,
+    contentType,
   });
   const res = await fetch('/api/library', {
     method: 'POST',
@@ -42,7 +56,7 @@ export async function saveAdToLibrary(asset: RenderedAsset, meta: AdMeta): Promi
     body: JSON.stringify({
       ...meta,
       fileUrl: blob.url,
-      mime: asset.blob.type,
+      mime: contentType,
       sizeBytes: asset.blob.size,
     }),
   });
@@ -87,10 +101,11 @@ export async function listSharedAssets(): Promise<SharedAsset[]> {
 export async function uploadSharedAsset(file: File): Promise<SharedAsset> {
   const kind: 'image' | 'video' = file.type.startsWith('video') ? 'video' : 'image';
   const safe = file.name.replace(/[^\w.-]+/g, '-');
+  const contentType = baseContentType(file.type, kind === 'video' ? 'mp4' : 'png');
   const blob = await upload(`shared/${safe}`, file, {
     access: 'public',
     handleUploadUrl: '/api/blob/upload',
-    contentType: file.type,
+    contentType,
   });
   const res = await fetch('/api/uploads', {
     method: 'POST',
@@ -99,7 +114,7 @@ export async function uploadSharedAsset(file: File): Promise<SharedAsset> {
       kind,
       name: file.name,
       fileUrl: blob.url,
-      mime: file.type,
+      mime: contentType,
       sizeBytes: file.size,
     }),
   });
