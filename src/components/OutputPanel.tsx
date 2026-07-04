@@ -200,10 +200,15 @@ export function OutputPanel({
   // duplicate save (saving the same asset twice creates a duplicate library row).
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => new Set());
   const alreadySaved = !!selectedJob && savedJobIds.has(selectedJob.id);
+  // Optional title + tags the user can attach before saving.
+  const [title, setTitle] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
 
-  // Reset only the transient save state when the user switches jobs.
+  // Reset transient save state + metadata inputs when the user switches jobs.
   useEffect(() => {
     setSaveState('idle');
+    setTitle('');
+    setTagsInput('');
   }, [selectedJob?.id]);
 
   async function saveToLibrary() {
@@ -212,12 +217,13 @@ export function OutputPanel({
     setSaveState('saving');
     try {
       await saveAdToLibrary(asset, {
-        title: selectedJob.reference ?? undefined,
+        title: title.trim() || undefined,
         format: selectedJob.format,
         aspect: selectedJob.aspect,
         language: selectedJob.language,
         reference: selectedJob.reference,
         versionAbbr: selectedJob.versionAbbr,
+        tags: tagsInput.split(',').map((t) => t.trim()).filter(Boolean),
       });
       setSavedJobIds((prev) => new Set(prev).add(jobId));
       setSaveState('idle');
@@ -317,7 +323,25 @@ export function OutputPanel({
               </PreviewFrame>
             </div>
 
-            <div className="mt-4 flex shrink-0 flex-col items-center gap-3">
+            <div className="mt-4 flex w-full max-w-md shrink-0 flex-col items-center gap-3">
+              {!alreadySaved && (
+                <div className="flex w-full flex-col gap-2">
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={`Title (optional) — defaults to “${selectedJob.reference ?? 'verse'}”`}
+                    className="h-10 w-full rounded-lg border border-line bg-surface px-3 text-[13px] font-medium text-ink outline-none transition focus:border-brand"
+                  />
+                  <input
+                    type="text"
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    placeholder="Tags (optional, comma-separated)"
+                    className="h-10 w-full rounded-lg border border-line bg-surface px-3 text-[13px] font-medium text-ink outline-none transition focus:border-brand"
+                  />
+                </div>
+              )}
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <Button variant="dark" onClick={download}>
                   <Download /> Download {asset.ext.toUpperCase()}

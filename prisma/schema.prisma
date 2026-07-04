@@ -26,6 +26,7 @@ model GeneratedAd {
   fileUrl     String
   mime        String?
   sizeBytes   Int?
+  tags        String[] @default([])
 
   @@index([ownerId])
 }

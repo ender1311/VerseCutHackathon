@@ -1,11 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { deleteMyAd, listMyAds, type SavedAd } from '../lib/library';
 import { Download, Spinner, Trash, XMark } from './icons';
+import { Select } from './ui';
+
+type SortKey = 'newest' | 'oldest' | 'title';
 
 export function LibraryDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [ads, setAds] = useState<SavedAd[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortKey>('newest');
+  const [tag, setTag] = useState<string>('all');
+
+  const allTags = useMemo(
+    () => Array.from(new Set((ads ?? []).flatMap((a) => a.tags ?? []))).sort(),
+    [ads],
+  );
+  const view = useMemo(() => {
+    let list = [...(ads ?? [])];
+    if (tag !== 'all') list = list.filter((a) => (a.tags ?? []).includes(tag));
+    list.sort((a, b) => {
+      if (sort === 'title') return (a.title ?? '').localeCompare(b.title ?? '');
+      const cmp = a.createdAt.localeCompare(b.createdAt);
+      return sort === 'oldest' ? cmp : -cmp;
+    });
+    return list;
+  }, [ads, tag, sort]);
 
   async function onRemove(ad: SavedAd) {
     if (!window.confirm(`Delete “${ad.reference ?? 'this ad'}” from your library?`)) return;
@@ -55,6 +75,34 @@ export function LibraryDrawer({ open, onClose }: { open: boolean; onClose: () =>
           </button>
         </div>
 
+        {ads && ads.length > 0 && (
+          <div className="flex flex-wrap gap-2 border-b border-line px-6 py-3">
+            <div className="min-w-[140px] flex-1">
+              <Select
+                value={sort}
+                onChange={(v) => setSort(v as SortKey)}
+                options={[
+                  { value: 'newest', label: 'Newest first' },
+                  { value: 'oldest', label: 'Oldest first' },
+                  { value: 'title', label: 'Title (A–Z)' },
+                ]}
+              />
+            </div>
+            {allTags.length > 0 && (
+              <div className="min-w-[140px] flex-1">
+                <Select
+                  value={tag}
+                  onChange={setTag}
+                  options={[
+                    { value: 'all', label: 'All tags' },
+                    ...allTags.map((t) => ({ value: t, label: `#${t}` })),
+                  ]}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="scroll-slim flex-1 overflow-y-auto p-6">
           {!ads && !error && (
             <div className="flex items-center gap-2 text-[14px] text-muted">
@@ -67,9 +115,12 @@ export function LibraryDrawer({ open, onClose }: { open: boolean; onClose: () =>
               No saved ads yet. Generate one and tap “Save to library”.
             </p>
           )}
-          {ads && ads.length > 0 && (
+          {ads && ads.length > 0 && view.length === 0 && (
+            <p className="text-[14px] text-muted">No ads match this tag.</p>
+          )}
+          {view.length > 0 && (
             <div className="grid grid-cols-2 gap-4">
-              {ads.map((ad) => (
+              {view.map((ad) => (
                 <div key={ad.id} className="overflow-hidden rounded-xl border border-line">
                   <div className="aspect-square bg-black">
                     {ad.format === 'video' ? (
@@ -81,12 +132,24 @@ export function LibraryDrawer({ open, onClose }: { open: boolean; onClose: () =>
                   <div className="flex items-center justify-between gap-2 p-2.5">
                     <div className="min-w-0">
                       <div className="truncate text-[12px] font-semibold text-ink">
-                        {ad.reference ?? 'Verse ad'}
+                        {ad.title || ad.reference || 'Verse ad'}
                       </div>
-                      <div className="text-[11px] text-faint">
+                      <div className="truncate text-[11px] text-faint">
                         {ad.versionAbbr ? `${ad.versionAbbr} · ` : ''}
                         {ad.aspect}
                       </div>
+                      {ad.tags && ad.tags.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {ad.tags.map((t) => (
+                            <span
+                              key={t}
+                              className="rounded bg-line-soft px-1.5 py-0.5 text-[10px] font-medium text-muted"
+                            >
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="flex shrink-0 items-center">
                       <a

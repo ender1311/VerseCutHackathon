@@ -13,6 +13,7 @@ export interface SavedAd {
   reference: string | null;
   versionAbbr: string | null;
   fileUrl: string;
+  tags: string[];
 }
 
 export interface AdMeta {
@@ -22,11 +23,20 @@ export interface AdMeta {
   language?: string | null;
   reference?: string | null;
   versionAbbr?: string | null;
+  tags?: string[];
 }
 
 function fileName(meta: AdMeta, ext: string): string {
   const ref = (meta.reference ?? 'verse').replace(/[^\w.-]+/g, '-').toLowerCase();
   return `ads/${ref}-${meta.aspect.replace(':', 'x')}.${ext}`;
+}
+
+/** A title for a saved ad: the user's, else a sensible auto-assigned one. */
+export function adTitle(meta: AdMeta): string {
+  const t = meta.title?.trim();
+  if (t) return t;
+  if (meta.reference) return meta.reference;
+  return meta.format === 'video' ? 'Video ad' : 'Image ad';
 }
 
 /**
@@ -55,6 +65,8 @@ export async function saveAdToLibrary(asset: RenderedAsset, meta: AdMeta): Promi
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       ...meta,
+      title: adTitle(meta),
+      tags: meta.tags ?? [],
       fileUrl: blob.url,
       mime: contentType,
       sizeBytes: asset.blob.size,
