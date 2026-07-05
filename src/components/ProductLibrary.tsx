@@ -53,9 +53,12 @@ export function ProductLibrary() {
               .map((v) => (
                 <div
                   key={v.id}
-                  className="overflow-hidden rounded-xl border border-line bg-black"
+                  className="overflow-hidden rounded-xl border border-line"
                 >
-                  <div className={v.orientation === 'portrait' ? 'aspect-[9/16]' : 'aspect-video'}>
+                  {/* Uniform square tile (matches the other asset grids) with
+                      the video letterboxed inside, so mixed portrait/landscape
+                      clips align cleanly instead of stretching to black. */}
+                  <div className="aspect-square bg-black">
                     <LazyVideo src={v.fileUrl} controls className="h-full w-full object-contain" />
                   </div>
                   <div className="bg-surface px-2 py-1.5 text-[11px] font-medium text-muted">
