@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
-import { put } from '@vercel/blob';
+import { put, del } from '@vercel/blob';
 import { prisma } from '@/lib/db';
 import { currentUser } from '@/lib/server/currentUser';
 import { pmEnabled, resolveOutputPath } from '@/lib/server/pm';
@@ -30,19 +30,26 @@ export async function POST(request: Request) {
     contentType: 'video/mp4',
   });
 
-  const row = await prisma.productVideo.create({
-    data: {
-      ownerId: user.id,
-      ownerEmail: user.email,
-      feature,
-      title: name.replace(/\.mp4$/, ''),
-      length: meta.length,
-      lang: meta.lang,
-      orientation: meta.orientation,
-      fileUrl: blob.url,
-      mime: 'video/mp4',
-      sizeBytes: bytes.length,
-    },
-  });
+  let row;
+  try {
+    row = await prisma.productVideo.create({
+      data: {
+        ownerId: user.id,
+        ownerEmail: user.email,
+        feature,
+        title: name.replace(/\.mp4$/, ''),
+        length: meta.length,
+        lang: meta.lang,
+        orientation: meta.orientation,
+        fileUrl: blob.url,
+        mime: 'video/mp4',
+        sizeBytes: bytes.length,
+      },
+    });
+  } catch (e) {
+    // Don't orphan the uploaded Blob if the DB row can't be written.
+    await del(blob.url).catch(() => {});
+    throw e;
+  }
   return Response.json({ data: row }, { status: 201 });
 }

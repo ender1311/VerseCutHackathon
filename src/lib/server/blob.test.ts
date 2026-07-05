@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { isManagedBlobUrl } from './blob';
+import { isManagedBlobUrl, isAllowedBlobPath } from './blob';
+
+describe('isAllowedBlobPath', () => {
+  it('allows known upload prefixes', () => {
+    expect(isAllowedBlobPath('ads/john-3-16-9x16.mp4')).toBe(true);
+    expect(isAllowedBlobPath('shared/photo.jpg')).toBe(true);
+    expect(isAllowedBlobPath('product/votd/clip.mp4')).toBe(true);
+    expect(isAllowedBlobPath('verse-images/en/bg.jpg')).toBe(true);
+  });
+  it('rejects arbitrary or traversal paths (write-anywhere regression)', () => {
+    expect(isAllowedBlobPath('secrets/key.txt')).toBe(false);
+    expect(isAllowedBlobPath('../ads/x.mp4')).toBe(false);
+    expect(isAllowedBlobPath('ads/../../etc/passwd')).toBe(false);
+    expect(isAllowedBlobPath('')).toBe(false);
+    expect(isAllowedBlobPath('/ads/x.mp4')).toBe(false);
+  });
+});
 
 describe('isManagedBlobUrl', () => {
   it('accepts our Vercel Blob URLs', () => {

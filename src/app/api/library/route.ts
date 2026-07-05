@@ -26,7 +26,11 @@ export async function POST(request: Request) {
     return Response.json({ error: 'fileUrl must be a managed Blob URL' }, { status: 400 });
   }
   const tags: string[] = Array.isArray(b.tags)
-    ? [...new Set((b.tags as unknown[]).map((t) => String(t).trim()).filter(Boolean))].slice(0, 20)
+    ? [
+        ...new Set(
+          (b.tags as unknown[]).map((t) => String(t).trim().slice(0, 64)).filter(Boolean),
+        ),
+      ].slice(0, 20)
     : [];
   const ad = await prisma.generatedAd.create({
     data: {

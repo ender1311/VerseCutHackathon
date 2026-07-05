@@ -36,13 +36,33 @@ export const SETTING_META: { key: SettingKey; label: string; hint: string }[] = 
 
 const KEY = 'versecut:settings';
 
+const MAX_VERSE = 176; // Psalm 119
+const clampInt = (n: unknown, lo: number, hi: number, fallback: number) =>
+  typeof n === 'number' && Number.isFinite(n) ? Math.min(Math.max(Math.round(n), lo), hi) : fallback;
+
+/** Validate/clamp a stored verse default so a corrupt localStorage value can't
+ * seed an invalid or incoherent range (e.g. toVerse < fromVerse, 0, NaN). */
+export function sanitizeVerseDefault(vd: Partial<VerseDefault> | null | undefined): VerseDefault | null {
+  if (!vd || typeof vd.book !== 'string' || !vd.book) return null;
+  const chapter = clampInt(vd.chapter, 1, 150, 1);
+  const fromVerse = clampInt(vd.fromVerse, 1, MAX_VERSE, 1);
+  const toVerse = clampInt(vd.toVerse, fromVerse, MAX_VERSE, fromVerse);
+  return {
+    book: vd.book,
+    bookName: typeof vd.bookName === 'string' && vd.bookName ? vd.bookName : vd.book,
+    chapter,
+    fromVerse,
+    toVerse,
+  };
+}
+
 export function resolveAppSettings(stored: Partial<AppSettings> | null): AppSettings {
   if (!stored) return { ...DEFAULT_APP_SETTINGS };
   return {
     voiceover: stored.voiceover ?? DEFAULT_APP_SETTINGS.voiceover,
     music: stored.music ?? DEFAULT_APP_SETTINGS.music,
     branding: stored.branding ?? DEFAULT_APP_SETTINGS.branding,
-    verseDefault: stored.verseDefault ?? DEFAULT_APP_SETTINGS.verseDefault,
+    verseDefault: sanitizeVerseDefault(stored.verseDefault),
   };
 }
 

@@ -41,14 +41,18 @@ export function ImageLibrary({
   const [lang, setLang] = useState<LangFilter>('all');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function refresh() {
+  useEffect(() => {
+    let active = true;
     setLoading(true);
+    setError(null);
     listSharedAssets()
-      .then((all) => setAssets(all))
-      .catch(() => setError('Could not load the library'))
-      .finally(() => setLoading(false));
-  }
-  useEffect(refresh, []);
+      .then((all) => active && setAssets(all))
+      .catch(() => active && setError('Could not load the library'))
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function onUpload(file: File) {
     setUploading(true);

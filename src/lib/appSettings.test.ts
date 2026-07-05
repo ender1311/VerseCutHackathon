@@ -4,6 +4,7 @@ import {
   resolveAppSettings,
   toggleSetting,
   parseStoredAppSettings,
+  sanitizeVerseDefault,
 } from './appSettings';
 
 describe('resolveAppSettings', () => {
@@ -25,6 +26,26 @@ describe('toggleSetting', () => {
     expect(next.music).toBe(!DEFAULT_APP_SETTINGS.music);
     expect(next.voiceover).toBe(DEFAULT_APP_SETTINGS.voiceover);
     expect(start.music).toBe(DEFAULT_APP_SETTINGS.music);
+  });
+});
+
+describe('sanitizeVerseDefault', () => {
+  it('returns null when there is no book', () => {
+    expect(sanitizeVerseDefault(null)).toBeNull();
+    expect(sanitizeVerseDefault({ chapter: 3 })).toBeNull();
+  });
+  it('passes a valid default through', () => {
+    expect(
+      sanitizeVerseDefault({ book: 'JHN', bookName: 'John', chapter: 3, fromVerse: 16, toVerse: 17 }),
+    ).toEqual({ book: 'JHN', bookName: 'John', chapter: 3, fromVerse: 16, toVerse: 17 });
+  });
+  it('clamps corrupt/incoherent values (regression)', () => {
+    const r = sanitizeVerseDefault({ book: 'PSA', chapter: 0, fromVerse: 10, toVerse: 2 } as never);
+    expect(r).toEqual({ book: 'PSA', bookName: 'PSA', chapter: 1, fromVerse: 10, toVerse: 10 });
+  });
+  it('falls back for NaN / non-numeric ranges', () => {
+    const r = sanitizeVerseDefault({ book: 'GEN', chapter: NaN, fromVerse: -5, toVerse: 999 } as never);
+    expect(r).toEqual({ book: 'GEN', bookName: 'GEN', chapter: 1, fromVerse: 1, toVerse: 176 });
   });
 });
 

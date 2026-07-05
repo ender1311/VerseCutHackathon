@@ -34,9 +34,11 @@ export function LazyVideo({
     return () => io.disconnect();
   }, [visible]);
   // Append a media fragment so browsers seek to ~first frame and paint it as a
-  // preview, instead of showing a black tile before playback. Skip if the src
-  // already has a fragment.
-  const displaySrc = src.includes('#') ? src : `${src}#t=0.1`;
+  // preview, instead of showing a black tile before playback. Only for http(s)
+  // sources — `#t=` on a `blob:` URL isn't reliably honored and can break the
+  // object-URL lookup. Skip if the src already has a fragment.
+  const displaySrc =
+    /^https?:/i.test(src) && !src.includes('#') ? `${src}#t=0.1` : src;
   return (
     <div ref={ref} className="h-full w-full">
       {visible ? (
