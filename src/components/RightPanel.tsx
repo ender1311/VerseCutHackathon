@@ -8,10 +8,10 @@ export type RightView = 'output' | 'videos' | 'youversion' | 'unsplash' | 'gener
 
 const TABS: { id: RightView; label: string }[] = [
   { id: 'output', label: 'Preview' },
-  { id: 'generated', label: 'Previously generated' },
   { id: 'youversion', label: 'YouVersion' },
   { id: 'unsplash', label: 'Unsplash' },
   { id: 'videos', label: 'Video library' },
+  { id: 'generated', label: 'Saved assets' },
 ];
 
 export function RightPanel({
