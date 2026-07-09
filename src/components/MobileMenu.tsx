@@ -8,14 +8,12 @@ export function MobileMenu({
   onClose,
   status,
   userEmail,
-  onOpenSavedAds,
   onOpenSettings,
 }: {
   open: boolean;
   onClose: () => void;
   status: { label: string; dot: string };
   userEmail?: string | null;
-  onOpenSavedAds: () => void;
   onOpenSettings: () => void;
 }) {
   useEffect(() => {
@@ -46,17 +44,6 @@ export function MobileMenu({
           <span className={`h-2 w-2 rounded-full ${status.dot}`} />
           <span className="text-[13px] font-semibold text-muted">{status.label}</span>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            onClose();
-            onOpenSavedAds();
-          }}
-          className="rounded-lg px-3 py-2.5 text-left text-[15px] font-semibold text-ink transition hover:bg-line-soft"
-        >
-          Saved ads
-        </button>
 
         <button
           type="button"

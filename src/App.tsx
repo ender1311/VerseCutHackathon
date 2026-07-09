@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { config } from './config';
 import { InputPanel } from './components/InputPanel';
 import { RightPanel, type RightView } from './components/RightPanel';
-import { LibraryDrawer } from './components/LibraryDrawer';
 import { SpaceSwitcher } from './components/SpaceSwitcher';
 import { PanelResizer } from './components/PanelResizer';
 import { OutputPanel } from './components/OutputPanel';
@@ -48,7 +47,6 @@ export default function App({
     ? 'running'
     : (studio.selectedJob?.status ?? 'idle');
   const status = STATUS[statusKey] ?? STATUS.idle;
-  const [libraryOpen, setLibraryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settings, setSettings] = useState(DEFAULT_APP_SETTINGS);
   useEffect(() => {
@@ -119,13 +117,6 @@ export default function App({
           </div>
           <SpaceSwitcher />
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setLibraryOpen(true)}
-              className="rounded-lg px-3 py-1.5 text-[13px] font-semibold text-muted transition hover:bg-line-soft hover:text-ink"
-            >
-              Saved ads
-            </button>
             <button
               type="button"
               aria-label="Settings"
@@ -233,10 +224,8 @@ export default function App({
         onClose={() => setMenuOpen(false)}
         status={status}
         userEmail={userEmail}
-        onOpenSavedAds={() => setLibraryOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
       />
-      <LibraryDrawer open={libraryOpen} onClose={() => setLibraryOpen(false)} />
       <SettingsDrawer
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
