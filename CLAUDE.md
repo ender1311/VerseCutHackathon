@@ -27,6 +27,37 @@ Ship via PR, not direct-to-main:
 4. **Read the Greptile review comments** on the PR; address real findings, push fixes.
 5. Merge once green + review addressed.
 
+### Self-improvement loop
+
+- After **any** correction from the user, capture the pattern as a durable memory
+  (see [Self-learning](#self-learning)) — not a one-off fix.
+- Write the lesson as a rule that prevents the *same class* of mistake recurring.
+- Review relevant memories at the start of a session before touching the code.
+
+### Verification before done
+
+- Never mark a task complete without proving it works — run tests, check logs,
+  exercise the UI. "It should work" is not verification.
+- When behavior is in question, diff the change against `main` to confirm the delta
+  is intentional and scoped.
+- Gut check before presenting: *would a staff engineer approve this?*
+
+### Demand elegance (balanced)
+
+- For non-trivial changes, pause and ask *"is there a more elegant way?"* before
+  committing to an approach.
+- If a fix feels hacky, redo it properly now that you understand the problem —
+  don't ship the workaround.
+- Skip this for simple, obvious fixes; don't over-engineer.
+- Challenge your own work before presenting it.
+
+### Autonomous bug-fixing
+
+- Given a bug report, just fix it — no hand-holding required. Point at the logs,
+  errors, or failing tests, then resolve the root cause.
+- Fix failing CI/`npm run check` without being told how.
+- Aim for zero context-switching from the user.
+
 ## Stack
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind v4 · Prisma 6 + Neon
@@ -71,6 +102,24 @@ src/
   — do not use it for the language picker.
 - Config lives in `src/config/index.ts`; secrets are server-only env (never `NEXT_PUBLIC_`).
 
+## Task management
+
+1. **Plan first** — for non-trivial work, write a checkable task list (harness tasks)
+   before implementing.
+2. **Verify the plan** — check in with the user before starting implementation.
+3. **Track progress** — mark items done as you go, not in a batch at the end.
+4. **Explain changes** — a high-level summary at each step, not a diff replay.
+5. **Document results** — note what changed and what's next when the work lands.
+6. **Capture lessons** — after any correction, feed it back into the
+   [self-improvement loop](#self-improvement-loop).
+
+## Core principles
+
+- **Simplicity first** — make each change as simple as possible; touch minimal code.
+- **No laziness** — find root causes; no temporary patches. Hold to senior-developer
+  standards.
+- **Minimal impact** — only touch what's necessary; no side effects or new bugs.
+
 ## Testing
 
 - New pure function in `lib/` → unit test beside it (`*.test.ts`).
@@ -83,3 +132,8 @@ Durable, non-obvious learnings about this project go in the agent memory dir
 (`~/.claude/projects/…/memory/`) so they surface in future sessions — e.g. the
 Platform-vs-internal API license distinction, and the `.env.local`-overrides-`.env`
 gotcha for `NEXT_PUBLIC_*`.
+
+This is also the home for the [self-improvement loop](#self-improvement-loop):
+after any correction, save the pattern here as a `feedback`-type memory (rule +
+**Why** + **How to apply**) so the same mistake isn't repeated. Prefer updating an
+existing memory over adding a near-duplicate.
