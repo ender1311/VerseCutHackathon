@@ -45,6 +45,21 @@ describe('detectScript', () => {
   it('detects sinhala', () => {
     expect(detectScript('උත්පත්ති')).toBe('sinhala');
   });
+  it('detects ethiopic (amharic)', () => {
+    expect(detectScript('ኦሪት ዘፍጥረት')).toBe('ethiopic');
+  });
+  it('detects armenian', () => {
+    expect(detectScript('Ծննդոց')).toBe('armenian');
+  });
+  it('detects georgian', () => {
+    expect(detectScript('დაბადება')).toBe('georgian');
+  });
+  it('detects khmer', () => {
+    expect(detectScript('លោកុប្បត្តិ')).toBe('khmer');
+  });
+  it('detects myanmar (burmese)', () => {
+    expect(detectScript('ကမ္ဘာဦး')).toBe('myanmar');
+  });
   it('detects thai', () => {
     expect(detectScript('เพราะว่าพระเจ้าทรงรักโลก')).toBe('thai');
   });

@@ -20,6 +20,11 @@ export type Script =
   | 'malayalam'
   | 'sinhala'
   | 'thai'
+  | 'ethiopic'
+  | 'armenian'
+  | 'georgian'
+  | 'khmer'
+  | 'myanmar'
   | 'han'
   | 'japanese'
   | 'korean';
@@ -40,6 +45,12 @@ const RANGES: { script: Script; re: RegExp }[] = [
   { script: 'malayalam', re: /[ഀ-ൿ]/ },
   { script: 'sinhala', re: /[඀-෿]/ },
   { script: 'thai', re: /[฀-๿]/ },
+  // Other non-Latin scripts in the Bible App language list, each its own block.
+  { script: 'ethiopic', re: /[ሀ-፿ᎀ-᎙]/ }, // Amharic/Tigrinya
+  { script: 'armenian', re: /[԰-֏]/ },
+  { script: 'georgian', re: /[Ⴀ-ჿ]/ },
+  { script: 'khmer', re: /[ក-៿]/ },
+  { script: 'myanmar', re: /[က-႟ꧠ-ꧾ]/ }, // Burmese
   { script: 'japanese', re: /[぀-ヿ]/ }, // kana ⇒ Japanese
   { script: 'korean', re: /[가-힯ᄀ-ᇿ]/ },
   { script: 'han', re: /[㐀-䶿一-鿿豈-﫿]/ },
@@ -94,6 +105,12 @@ function notoSerif(name: string): FontSpec {
   return { family, googleFamily: `${family.replace(/ /g, '+')}:wght@400..700`, rtl: false };
 }
 
+/** Noto Sans variant for scripts with no Noto Serif family (e.g. Myanmar). */
+function notoSans(name: string): FontSpec {
+  const family = `Noto Sans ${name}`;
+  return { family, googleFamily: `${family.replace(/ /g, '+')}:wght@400..700`, rtl: false };
+}
+
 function spec(script: Script, languageId?: string): FontSpec {
   switch (script) {
     case 'arabic':
@@ -122,6 +139,16 @@ function spec(script: Script, languageId?: string): FontSpec {
       return notoSerif('Sinhala');
     case 'thai':
       return notoSerif('Thai');
+    case 'ethiopic':
+      return notoSerif('Ethiopic');
+    case 'armenian':
+      return notoSerif('Armenian');
+    case 'georgian':
+      return notoSerif('Georgian');
+    case 'khmer':
+      return notoSerif('Khmer');
+    case 'myanmar':
+      return notoSans('Myanmar');
     case 'japanese':
       return { family: 'Noto Serif JP', googleFamily: 'Noto+Serif+JP:wght@400..700', rtl: false };
     case 'korean':
