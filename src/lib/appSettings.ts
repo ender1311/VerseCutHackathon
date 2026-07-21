@@ -4,6 +4,20 @@
 
 export type SettingKey = 'voiceover' | 'music' | 'branding';
 
+/** Which studio layout ("direction") to render on desktop (≥lg). */
+export type UiMode = 'guided' | 'everlight' | 'everdark' | 'templates';
+
+export const UI_MODES: readonly UiMode[] = ['guided', 'everlight', 'everdark', 'templates'];
+
+export const DEFAULT_UI_MODE: UiMode = 'guided';
+
+export const UI_MODE_META: { id: UiMode; name: string; tagline: string }[] = [
+  { id: 'guided', name: 'Guided Path', tagline: 'One decision at a time, along a numbered spine' },
+  { id: 'everlight', name: 'Everlight', tagline: 'Calm editorial — big preview, quiet inspector' },
+  { id: 'everdark', name: 'Everdark Studio', tagline: 'Dark pro editor with a tool rail + stage' },
+  { id: 'templates', name: 'Templates-first', tagline: 'Start from a ready-made look, then tweak' },
+];
+
 /** A saved default Bible reference to prefill new sessions. */
 export interface VerseDefault {
   book: string; // USFM book id, e.g. "JHN"
@@ -19,6 +33,8 @@ export interface AppSettings {
   branding: boolean;
   /** null = use the built-in default (John 3:16-17). */
   verseDefault: VerseDefault | null;
+  /** Desktop layout direction. */
+  uiMode: UiMode;
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -26,7 +42,15 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   music: true,
   branding: true,
   verseDefault: null,
+  uiMode: DEFAULT_UI_MODE,
 };
+
+/** Coerce a stored value to a known UiMode, defaulting when unrecognized. */
+export function sanitizeUiMode(v: unknown): UiMode {
+  return typeof v === 'string' && (UI_MODES as readonly string[]).includes(v)
+    ? (v as UiMode)
+    : DEFAULT_UI_MODE;
+}
 
 export const SETTING_META: { key: SettingKey; label: string; hint: string }[] = [
   { key: 'voiceover', label: 'Voiceover', hint: 'In-browser AI narration in the Audio section' },
@@ -63,6 +87,7 @@ export function resolveAppSettings(stored: Partial<AppSettings> | null): AppSett
     music: stored.music ?? DEFAULT_APP_SETTINGS.music,
     branding: stored.branding ?? DEFAULT_APP_SETTINGS.branding,
     verseDefault: sanitizeVerseDefault(stored.verseDefault),
+    uiMode: sanitizeUiMode(stored.uiMode),
   };
 }
 

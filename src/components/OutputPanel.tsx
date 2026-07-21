@@ -4,6 +4,7 @@ import { resolveDraftBackground } from '../lib/draftBackground';
 import type { Job, Stage, useStudio } from '../lib/useStudio';
 import { saveAdToLibrary } from '../lib/library';
 import { Button } from './ui';
+import { PreviewFrame } from './studio/PreviewCard';
 import { Check, Download, ImageIcon, Spinner, VideoIcon } from './icons';
 
 type Studio = ReturnType<typeof useStudio>;
@@ -145,47 +146,6 @@ function StageRow({ stage }: { stage: Stage }) {
         <span className="ml-auto text-[13px] font-semibold tabular-nums text-muted">
           {pct}%
         </span>
-      )}
-    </div>
-  );
-}
-
-function PreviewFrame({
-  aspect,
-  safeArea,
-  capPx = 720,
-  children,
-}: {
-  aspect: string;
-  safeArea?: boolean;
-  /** Max height cap (px) for height-driven formats; raised in the side layout. */
-  capPx?: number;
-  children: React.ReactNode;
-}) {
-  // Size tall/square formats by height; only 16:9 sizes by width. The frame
-  // fills the available height of its (flex-constrained) parent and never
-  // overflows it — so the whole preview stays visible on small screens, with
-  // a hard cap on large desktop viewports.
-  const byHeight = aspect !== '16:9';
-  return (
-    <div
-      className="relative overflow-hidden rounded-2xl bg-black shadow-[0_24px_60px_-20px_rgba(0,0,0,0.45)] ring-1 ring-black/5"
-      style={{
-        aspectRatio: aspect.replace(':', ' / '),
-        height: byHeight ? '100%' : undefined,
-        width: byHeight ? undefined : 'min(100%, 880px)',
-        maxHeight: `min(100%, ${capPx}px)`,
-        maxWidth: '100%',
-      }}
-    >
-      {children}
-      {safeArea && (
-        <div className="pointer-events-none absolute inset-0 z-10">
-          <div className="absolute inset-x-[6%] inset-y-[10%] rounded-lg border border-dashed border-white/45" />
-          <span className="absolute left-1/2 top-2 -translate-x-1/2 rounded bg-black/45 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/85">
-            Safe area
-          </span>
-        </div>
       )}
     </div>
   );

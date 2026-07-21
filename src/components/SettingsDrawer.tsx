@@ -1,8 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { XMark } from './icons';
-import { SETTING_META, type AppSettings, type SettingKey, type VerseDefault } from '../lib/appSettings';
+import { Check, XMark } from './icons';
+import {
+  SETTING_META,
+  UI_MODE_META,
+  type AppSettings,
+  type SettingKey,
+  type UiMode,
+  type VerseDefault,
+} from '../lib/appSettings';
 
 function verseLabel(v: VerseDefault): string {
   const range = v.fromVerse === v.toVerse ? `${v.fromVerse}` : `${v.fromVerse}-${v.toVerse}`;
@@ -33,6 +40,7 @@ export function SettingsDrawer({
   onClose,
   settings,
   onToggle,
+  onSetUiMode,
   currentVerse,
   onSaveVerseDefault,
   onClearVerseDefault,
@@ -41,6 +49,7 @@ export function SettingsDrawer({
   onClose: () => void;
   settings: AppSettings;
   onToggle: (key: SettingKey) => void;
+  onSetUiMode: (mode: UiMode) => void;
   currentVerse: VerseDefault;
   onSaveVerseDefault: () => void;
   onClearVerseDefault: () => void;
@@ -77,6 +86,43 @@ export function SettingsDrawer({
         </div>
 
         <div className="scroll-slim flex-1 overflow-y-auto p-6">
+          <div className="mb-8">
+            <div className="mb-1 text-[15px] font-semibold text-ink">Interface</div>
+            <p className="mb-3 text-[12px] text-faint">
+              Choose how the studio is laid out on desktop. (Phones keep the compact flow.)
+            </p>
+            <div className="flex flex-col gap-2">
+              {UI_MODE_META.map(({ id, name, tagline }) => {
+                const active = settings.uiMode === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => onSetUiMode(id)}
+                    className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${
+                      active
+                        ? 'border-brand bg-brand/5'
+                        : 'border-line bg-surface hover:border-faint'
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[14px] font-semibold text-ink">{name}</div>
+                      <div className="text-[12px] text-faint">{tagline}</div>
+                    </div>
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                        active ? 'bg-brand text-white' : 'border border-line text-transparent'
+                      }`}
+                    >
+                      <Check />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <p className="mb-4 text-[13px] text-muted">
             Turn optional features on or off. Disabled features are hidden from the studio panel.
           </p>

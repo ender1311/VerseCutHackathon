@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_APP_SETTINGS,
+  DEFAULT_UI_MODE,
   resolveAppSettings,
+  sanitizeUiMode,
   toggleSetting,
   parseStoredAppSettings,
   sanitizeVerseDefault,
@@ -46,6 +48,26 @@ describe('sanitizeVerseDefault', () => {
   it('falls back for NaN / non-numeric ranges', () => {
     const r = sanitizeVerseDefault({ book: 'GEN', chapter: NaN, fromVerse: -5, toVerse: 999 } as never);
     expect(r).toEqual({ book: 'GEN', bookName: 'GEN', chapter: 1, fromVerse: 1, toVerse: 176 });
+  });
+});
+
+describe('sanitizeUiMode', () => {
+  it('defaults to guided', () => {
+    expect(DEFAULT_UI_MODE).toBe('guided');
+    expect(sanitizeUiMode(undefined)).toBe('guided');
+    expect(sanitizeUiMode(null)).toBe('guided');
+    expect(sanitizeUiMode('nonsense')).toBe('guided');
+    expect(sanitizeUiMode(3)).toBe('guided');
+  });
+  it('passes known modes through', () => {
+    expect(sanitizeUiMode('everlight')).toBe('everlight');
+    expect(sanitizeUiMode('everdark')).toBe('everdark');
+    expect(sanitizeUiMode('templates')).toBe('templates');
+    expect(sanitizeUiMode('guided')).toBe('guided');
+  });
+  it('resolveAppSettings coerces an invalid stored uiMode to the default', () => {
+    expect(resolveAppSettings({ uiMode: 'bogus' as never }).uiMode).toBe('guided');
+    expect(resolveAppSettings({ uiMode: 'everdark' }).uiMode).toBe('everdark');
   });
 });
 

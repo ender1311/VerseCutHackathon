@@ -1,41 +1,4 @@
-export const MIN_PANEL_WIDTH = 380;
-export const MAX_PANEL_WIDTH = 720;
-export const DEFAULT_PANEL_WIDTH = 460;
-
-const WIDTH_KEY = 'versecut:panelWidth';
 const SECTIONS_KEY = 'versecut:sections';
-
-export function clampPanelWidth(px: number): number {
-  if (!Number.isFinite(px)) return DEFAULT_PANEL_WIDTH;
-  return Math.round(Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, px)));
-}
-
-export function parseStoredWidth(raw: string | null): number | null {
-  if (raw == null) return null;
-  const trimmed = raw.trim();
-  if (trimmed === '') return null;
-  const n = Number(trimmed);
-  if (!Number.isFinite(n)) return null;
-  return clampPanelWidth(n);
-}
-
-export function readStoredWidth(): number | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return parseStoredWidth(window.localStorage.getItem(WIDTH_KEY));
-  } catch {
-    return null;
-  }
-}
-
-export function writeStoredWidth(px: number): void {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(WIDTH_KEY, String(clampPanelWidth(px)));
-  } catch {
-    // localStorage unavailable (private mode / quota) — ignore.
-  }
-}
 
 export type SectionKey = 'content' | 'background' | 'audio' | 'branding' | 'output';
 export type SectionState = Record<SectionKey, boolean>;
