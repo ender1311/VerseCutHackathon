@@ -26,7 +26,8 @@ results, so they never disagree — they are just two views of the same data.
 - Server-side rendering. Rendering reuses the existing client-side Canvas
   pipeline (`renderImage` / `composeFrame`).
 - Per-language localized logos beyond the 66 that already ship art. The long
-  tail uses the **English Bible App asset** as a fallback (see Decisions).
+  tail uses the **English icon-only** Bible App mark (no wordmark) as a fallback
+  (see Decisions).
 - Video output. Bulk export is images only.
 - Compositing geo backgrounds into the version assets. The version batch uses a
   single shared background; geo images live only in the geo CSVs.
@@ -34,13 +35,15 @@ results, so they never disagree — they are just two views of the same data.
 ## Key decisions (resolved during brainstorming)
 
 - **Scale:** every version (~3,700). One CSV row per version id.
-- **Logo fallback:** the 66 languages with localized art use it (via the
-  existing `resolveLogoFile` chain); the other ~2,382 languages composite the
-  **English** asset. A scan confirmed the existing fallback resolves exactly 66
-  languages — the long tail are genuinely distinct languages (e.g. `aau` Abau,
-  `acr` Achi), not script/region variants, so no linguistically-honest mapping
-  exists. English fallback claims nothing false and guarantees every row has an
-  asset. Verse **reference** and **text** are still localized for all ~3,700.
+- **Logo fallback:** the 66 languages with localized art use it in the chosen
+  style (via `resolveLogoFile`). Every other language uses the **English
+  icon-only** Bible App mark — the plain app icon with **no "Bible App"
+  wordmark** — regardless of the batch's chosen style, and never a lockup. This
+  avoids stamping English wordmark text onto a non-English version. A scan
+  confirmed the fallback chain resolves exactly 66 languages — the long tail are
+  genuinely distinct languages (e.g. `aau` Abau, `acr` Achi), not script/region
+  variants, so no localized art exists for them. Verse **reference** and **text**
+  are still localized for all ~3,700.
 - **Output format:** two separate CSV files (not a multi-sheet workbook).
 - **Geo derivation:** derive a primary country per language; source Unsplash
   landmark images per country (deduped queries), then emit **both** a
@@ -59,7 +62,7 @@ Bulk Export tab (/export, client)
   ├─ resolve scope → list of versions (from bible-manifest.json)
   ├─ for each version (concurrency pool ~8–12):
   │     fetch verse text + localized ref   → internal reader API (/api/yvb)
-  │     resolve logo (localized|English)   → resolveLogoFile
+  │     resolve logo (localized style | English icon-only) → resolveBulkLogo
   │     renderImage(...)                    → Blob (existing compositor)
   │     POST blob                           → /api/air/upload → { cdn_url }
   │     push row { version_id, reference, verse_text, air_cdn_link }
@@ -103,7 +106,12 @@ of a server job's durability for a fraction of the effort.
 - Pure-ish orchestrator given injectable deps (fetchText, render, upload) so it
   is unit-testable without network/DOM.
 - Concurrency pool (default 10). Per version: resolve language code → fetch text
-  + localized reference → resolve logo → render → upload → row.
+  + localized reference → resolve logo (`resolveBulkLogo`) → render → upload →
+  row.
+- `resolveBulkLogo(code, chosenStyle)` (pure, in `src/lib/export/logo.ts`):
+  if `resolveLogoFile(chosenStyle, code)` finds localized art → render with
+  `{ languageId: code, logoStyle: chosenStyle }`; otherwise → render with
+  `{ languageId: 'en', logoStyle: 'icon-only' }` (English app icon, no wordmark).
 - Failure policy: retry once; on second failure record the row with a blank
   `air_cdn_link` and increment a failure counter (surfaced in the UI). Never
   aborts the whole batch on a single failure.
@@ -201,6 +209,8 @@ async function uploadToAir(bytes: Uint8Array, opts: {
 
 - `csv.ts` — RFC-4180 escaping (commas, quotes, newlines in verse text), column
   ordering, empty rows.
+- `logo.ts` — `resolveBulkLogo` returns the chosen style + code for a covered
+  language, and English `icon-only` for an uncovered one.
 - `versionExport.ts` — orchestration with injected fake deps: concurrency,
   retry-once-then-blank, checkpoint accumulation, progress callbacks.
 - `geoBackgrounds.ts` — `isSafeGeoPhoto` accepts landmarks, rejects
