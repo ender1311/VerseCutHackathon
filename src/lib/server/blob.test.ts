@@ -5,7 +5,6 @@ describe('isAllowedBlobPath', () => {
   it('allows known upload prefixes', () => {
     expect(isAllowedBlobPath('ads/john-3-16-9x16.mp4')).toBe(true);
     expect(isAllowedBlobPath('shared/photo.jpg')).toBe(true);
-    expect(isAllowedBlobPath('product/votd/clip.mp4')).toBe(true);
     expect(isAllowedBlobPath('verse-images/en/bg.jpg')).toBe(true);
   });
   it('rejects arbitrary or traversal paths (write-anywhere regression)', () => {

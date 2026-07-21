@@ -33,7 +33,7 @@ export function InputPanel({
   onGenerate,
 }: {
   studio: Studio;
-  space?: 'ads' | 'social' | 'product';
+  space?: 'ads' | 'social';
   settings?: AppSettings;
   onBrowse: (view: LibraryView) => void;
   /** When set, used instead of `studio.generate` (e.g. mobile jumps to Preview). */

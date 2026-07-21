@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 
 const SPACES = [
   { href: '/', label: 'Digital Ads' },
-  { href: '/product', label: 'Product Marketing' },
   { href: '/social', label: 'Social' },
   { href: '/export', label: 'Bulk Export' },
 ] as const;

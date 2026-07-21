@@ -1,7 +1,7 @@
 // Blob pathnames the client is allowed to upload to. The client picks the
 // pathname in the upload-token flow, so restrict it to our known prefixes (and
 // block traversal) rather than letting an authed user write anywhere.
-const ALLOWED_BLOB_PREFIXES = ['ads/', 'shared/', 'product/', 'verse-images/'];
+const ALLOWED_BLOB_PREFIXES = ['ads/', 'shared/', 'verse-images/'];
 
 export function isAllowedBlobPath(pathname: string): boolean {
   if (typeof pathname !== 'string' || pathname.includes('..')) return false;

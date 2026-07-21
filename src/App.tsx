@@ -39,7 +39,7 @@ export default function App({
   space = 'ads',
 }: {
   userEmail?: string | null;
-  space?: 'ads' | 'social' | 'product';
+  space?: 'ads' | 'social';
 }) {
   const studio = useStudio();
   const statusKey = studio.isRendering ? 'running' : (studio.selectedJob?.status ?? 'idle');

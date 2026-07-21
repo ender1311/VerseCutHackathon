@@ -10,7 +10,7 @@ import { TemplatesShell } from './TemplatesShell';
 
 export interface ShellProps {
   studio: ReturnType<typeof useStudio>;
-  space: 'ads' | 'social' | 'product';
+  space: 'ads' | 'social';
   settings: AppSettings;
   onBrowse: (view: LibraryView) => void;
 }
