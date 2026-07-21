@@ -10,8 +10,16 @@ import { YouVersionInternalProvider, loadBibleManifest } from '../lib/bible/inte
 import type { Book } from '../lib/bible';
 import { uploadImageToAir } from '../lib/export/airClient';
 import { uploadImageToAws } from '../lib/export/awsClient';
+import { uploadImageToBraze } from '../lib/export/brazeClient';
 import { s3KeyForVersion } from '../lib/export/awsPath';
 import { runVersionExport, type ExportVersion } from '../lib/export/versionExport';
+
+type Destination = 'aws' | 'air' | 'braze';
+const DESTINATIONS: { value: Destination; label: string }[] = [
+  { value: 'aws', label: 'AWS S3' },
+  { value: 'air', label: 'AIR' },
+  { value: 'braze', label: 'Braze media library' },
+];
 import { prioritizeVersions, DEFAULT_PRIORITY_CODES } from '../lib/export/versionOrder';
 import type { VersionExportRow } from '../lib/export/types';
 import { buildVersionsCsv, buildGeoByCountryCsv, buildGeoByLanguageCsv } from '../lib/export/csv';
@@ -48,6 +56,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
   const provider = useMemo(() => new YouVersionInternalProvider(), []);
   const [logoStyle, setLogoStyle] = useState<LogoStyle>('logo-light');
   const [aspect, setAspect] = useState<AspectRatio>('1:1');
+  const [destination, setDestination] = useState<Destination>('aws');
 
   const [books, setBooks] = useState<Book[]>([]);
   const [bookId, setBookId] = useState('JHN');
@@ -76,7 +85,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
   const currentBook = books.find((b) => b.id === bookId);
   const maxChapter = currentBook?.chapters ?? 150;
 
-  async function runVersions(target: 'air' | 'aws') {
+  async function runVersions() {
     setRunning(true);
     setError(null);
     setRows(null);
@@ -93,13 +102,14 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
       const ordered = prioritizeVersions(all, DEFAULT_PRIORITY_CODES);
       const versions = limit > 0 ? ordered.slice(0, limit) : ordered;
 
+      const idFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
       const uploadImage =
-        target === 'aws'
-          ? (blob: Blob, fileName: string) => {
-              const id = fileName.replace(/\.[^.]+$/, '');
-              return uploadImageToAws(blob, s3KeyForVersion(reference, id, 'jpg'));
-            }
-          : uploadImageToAir;
+        destination === 'aws'
+          ? (blob: Blob, fileName: string) =>
+              uploadImageToAws(blob, s3KeyForVersion(reference, idFromFile(fileName), 'jpg'))
+          : destination === 'braze'
+            ? (blob: Blob, fileName: string) => uploadImageToBraze(blob, `versecut-${idFromFile(fileName)}`)
+            : uploadImageToAir;
 
       const result = await runVersionExport(
         versions,
@@ -242,12 +252,18 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
           </div>
         </div>
 
+        <div className="mt-6 max-w-xs">
+          <FieldLabel>Destination</FieldLabel>
+          <Select
+            value={destination}
+            onChange={(v) => setDestination(v)}
+            options={DESTINATIONS}
+          />
+        </div>
+
         <div className="mt-6 flex flex-wrap gap-3">
-          <Button variant="primary" onClick={() => runVersions('aws')} disabled={running}>
-            {running ? 'Working…' : limit > 0 ? `Push ${limit} to AWS` : 'Push all to AWS'}
-          </Button>
-          <Button variant="secondary" onClick={() => runVersions('air')} disabled={running}>
-            {limit > 0 ? `Export ${limit} to AIR` : 'Export all to AIR'}
+          <Button variant="primary" onClick={runVersions} disabled={running}>
+            {running ? 'Working…' : limit > 0 ? `Export ${limit} versions` : 'Export all versions'}
           </Button>
           <Button variant="secondary" onClick={runGeo} disabled={running}>
             Export geo backgrounds
