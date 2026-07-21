@@ -9,6 +9,8 @@ import { renderImage } from '../lib/render';
 import { YouVersionInternalProvider, loadBibleManifest } from '../lib/bible/internalProvider';
 import type { Book } from '../lib/bible';
 import { uploadImageToAir } from '../lib/export/airClient';
+import { uploadImageToAws } from '../lib/export/awsClient';
+import { s3KeyForVersion } from '../lib/export/awsPath';
 import { runVersionExport, type ExportVersion } from '../lib/export/versionExport';
 import { prioritizeVersions, DEFAULT_PRIORITY_CODES } from '../lib/export/versionOrder';
 import type { VersionExportRow } from '../lib/export/types';
@@ -74,12 +76,13 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
   const currentBook = books.find((b) => b.id === bookId);
   const maxChapter = currentBook?.chapters ?? 150;
 
-  async function runVersions() {
+  async function runVersions(target: 'air' | 'aws') {
     setRunning(true);
     setError(null);
     setRows(null);
     setProgress(null);
     try {
+      const reference = { bookId, chapter, fromVerse, toVerse };
       const manifest = await loadBibleManifest();
       const all: ExportVersion[] = [];
       for (const lang of manifest.languages) {
@@ -90,15 +93,23 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
       const ordered = prioritizeVersions(all, DEFAULT_PRIORITY_CODES);
       const versions = limit > 0 ? ordered.slice(0, limit) : ordered;
 
+      const uploadImage =
+        target === 'aws'
+          ? (blob: Blob, fileName: string) => {
+              const id = fileName.replace(/\.[^.]+$/, '');
+              return uploadImageToAws(blob, s3KeyForVersion(reference, id, 'jpg'));
+            }
+          : uploadImageToAir;
+
       const result = await runVersionExport(
         versions,
         {
           fetchPassage: (q) => provider.fetchPassage(q),
           renderImage,
-          uploadImage: uploadImageToAir,
+          uploadImage,
         },
         {
-          reference: { bookId, chapter, fromVerse, toVerse },
+          reference,
           aspect,
           dimensions: ASPECT_DIMENSIONS[aspect],
           logoStyle,
@@ -231,9 +242,12 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
           </div>
         </div>
 
-        <div className="mt-6 flex gap-3">
-          <Button variant="primary" onClick={runVersions} disabled={running}>
-            {running ? 'Working…' : limit > 0 ? `Export ${limit} versions` : 'Export all versions'}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button variant="primary" onClick={() => runVersions('aws')} disabled={running}>
+            {running ? 'Working…' : limit > 0 ? `Push ${limit} to AWS` : 'Push all to AWS'}
+          </Button>
+          <Button variant="secondary" onClick={() => runVersions('air')} disabled={running}>
+            {limit > 0 ? `Export ${limit} to AIR` : 'Export all to AIR'}
           </Button>
           <Button variant="secondary" onClick={runGeo} disabled={running}>
             Export geo backgrounds
