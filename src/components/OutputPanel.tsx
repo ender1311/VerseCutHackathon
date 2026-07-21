@@ -156,7 +156,7 @@ export function OutputPanel({
   space = 'ads',
 }: {
   studio: Studio;
-  space?: 'ads' | 'social' | 'product';
+  space?: 'ads' | 'social';
 }) {
   const { jobs, selectedJob } = studio;
   const showSafe = space === 'social' && !!studio.platform;

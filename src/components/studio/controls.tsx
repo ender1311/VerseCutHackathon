@@ -511,7 +511,7 @@ export function OutputFields({
   space = 'ads',
 }: {
   studio: Studio;
-  space?: 'ads' | 'social' | 'product';
+  space?: 'ads' | 'social';
 }) {
   return (
     <div>
