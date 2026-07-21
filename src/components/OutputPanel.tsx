@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { config } from '../config';
+import { resolveDraftBackground } from '../lib/draftBackground';
 import type { Job, Stage, useStudio } from '../lib/useStudio';
 import { saveAdToLibrary } from '../lib/library';
 import { Button } from './ui';
@@ -223,6 +224,37 @@ export function OutputPanel({
     setSamplePreview(SAMPLE_PREVIEWS[Math.floor(Math.random() * SAMPLE_PREVIEWS.length)]);
   }, []);
 
+  // Object URLs for local uploads (revoked when the File changes / unmounts).
+  // When the File is cleared, ignore any stale URL — don't setState(null) in
+  // the effect (avoids cascading-render lint on the clear path).
+  const [imageObjectUrl, setImageObjectUrl] = useState<string | null>(null);
+  const [videoObjectUrl, setVideoObjectUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!studio.imageFile) return;
+    const url = URL.createObjectURL(studio.imageFile);
+    setImageObjectUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [studio.imageFile]);
+  useEffect(() => {
+    if (!studio.videoFile) return;
+    const url = URL.createObjectURL(studio.videoFile);
+    setVideoObjectUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [studio.videoFile]);
+
+  const draftBg = resolveDraftBackground(
+    {
+      imageFile: studio.imageFile,
+      videoFile: studio.videoFile,
+      sharedBg: studio.sharedBg,
+      libraryVideo: studio.libraryVideo,
+    },
+    {
+      image: studio.imageFile ? imageObjectUrl : null,
+      video: studio.videoFile ? videoObjectUrl : null,
+    },
+  );
+
   // Reset transient save state + metadata inputs when the user switches jobs.
   useEffect(() => {
     setSaveState('idle');
@@ -285,28 +317,54 @@ export function OutputPanel({
       <div className="flex min-h-0 flex-1 flex-col px-6 py-5 md:px-10 md:py-8">
         {!selectedJob && (
           <div className="flex h-full w-full flex-col items-center justify-center gap-5">
-            {samplePreview && (
+            {draftBg ? (
               <div className="flex min-h-0 w-full flex-1 items-center justify-center">
-                <PreviewFrame aspect="9:16">
-                  <video
-                    key={samplePreview}
-                    src={samplePreview}
-                    className="h-full w-full object-cover"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
+                <PreviewFrame aspect={aspect}>
+                  {draftBg.kind === 'video' ? (
+                    <video
+                      key={draftBg.url}
+                      src={draftBg.url}
+                      className="h-full w-full object-cover"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  ) : (
+                    <img
+                      key={draftBg.url}
+                      src={draftBg.url}
+                      alt={draftBg.label ?? 'Selected background'}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
                 </PreviewFrame>
               </div>
+            ) : (
+              samplePreview && (
+                <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+                  <PreviewFrame aspect="9:16">
+                    <video
+                      key={samplePreview}
+                      src={samplePreview}
+                      className="h-full w-full object-cover"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  </PreviewFrame>
+                </div>
+              )
             )}
             <div className="max-w-sm shrink-0 text-center">
               <h2 className="mb-2 text-[20px] font-bold text-ink">
-                Your ad preview appears here
+                {draftBg ? 'Background selected' : 'Your ad preview appears here'}
               </h2>
               <p className="text-[14px] leading-relaxed text-muted">
-                An example is playing above. Pick a language and verse range, then generate
-                to see your {format === 'video' ? 'video' : 'image'} ad render in {aspect}.
+                {draftBg
+                  ? `Your selected background is ready. Generate to render your ${format === 'video' ? 'video' : 'image'} ad in ${aspect}.`
+                  : `An example is playing above. Pick a language and verse range, then generate to see your ${format === 'video' ? 'video' : 'image'} ad render in ${aspect}.`}
               </p>
             </div>
           </div>

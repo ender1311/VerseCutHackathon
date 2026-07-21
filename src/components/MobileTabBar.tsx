@@ -17,7 +17,7 @@ export function MobileTabBar({
   onChange: (v: MobileView) => void;
 }) {
   return (
-    <nav className="flex shrink-0 items-stretch border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
+    <nav className="flex shrink-0 items-stretch border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
       {MOBILE_TABS.map(({ id, label }) => {
         const Icon = ICONS[id];
         const active = id === value;

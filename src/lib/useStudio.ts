@@ -105,6 +105,7 @@ export function useStudio() {
   const [languages, setLanguages] = useState<Language[]>([]);
   const [versions, setVersions] = useState<BibleVersion[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
   // Form selections
   // Prefill the verse range from the user's saved default (Settings), falling
@@ -123,12 +124,21 @@ export function useStudio() {
   const [sharedBg, setSharedBg] = useState<SharedBackground | null>(null);
   const [libraryBusy, setLibraryBusy] = useState(false);
   const [format, setFormat] = useState<OutputFormat>(config.output.defaultFormat);
-  const [aspect, setAspect] = useState<AspectRatio>(config.output.defaultAspect);
+  const [aspect, setAspectState] = useState<AspectRatio>(config.output.defaultAspect);
   const [platform, setPlatform] = useState<string | null>(null);
   const selectPlatform = useCallback((id: string) => {
     setPlatform(id);
     const fmt = SOCIAL_FORMAT_BY_ID[id];
-    if (fmt) setAspect(fmt.aspect);
+    if (fmt) setAspectState(fmt.aspect);
+  }, []);
+  // Manual aspect changes clear a mismatched platform so safe-area overlays stay in sync.
+  const setAspect = useCallback((next: AspectRatio) => {
+    setAspectState(next);
+    setPlatform((prev) => {
+      if (!prev) return prev;
+      const fmt = SOCIAL_FORMAT_BY_ID[prev];
+      return fmt && fmt.aspect === next ? prev : null;
+    });
   }, []);
   const [imageFormat, setImageFormat] = useState<'png' | 'jpg'>('png');
   const [durationSec, setDurationSec] = useState<number>(config.output.videoDurationSec);
@@ -181,15 +191,22 @@ export function useStudio() {
   // Load languages once; default to English when available.
   useEffect(() => {
     let active = true;
-    provider.listLanguages().then((langs) => {
-      if (!active) return;
-      setLanguages(langs);
-      const def =
-        langs.find((l) => l.id === 'i:en' || l.id === 'en' || l.id === 'eng') ??
-        langs.find((l) => /^english$/i.test(l.name)) ??
-        langs[0];
-      if (def) setLanguageId(def.id);
-    });
+    provider
+      .listLanguages()
+      .then((langs) => {
+        if (!active) return;
+        setCatalogError(null);
+        setLanguages(langs);
+        const def =
+          langs.find((l) => l.id === 'i:en' || l.id === 'en' || l.id === 'eng') ??
+          langs.find((l) => /^english$/i.test(l.name)) ??
+          langs[0];
+        if (def) setLanguageId(def.id);
+      })
+      .catch(() => {
+        if (!active) return;
+        setCatalogError('Could not load languages. Check your connection and try again.');
+      });
     return () => {
       active = false;
     };
@@ -199,15 +216,24 @@ export function useStudio() {
   useEffect(() => {
     if (!languageId) return;
     let active = true;
-    provider.listVersions(languageId).then((vs) => {
-      if (!active) return;
-      setVersions(vs);
-      const def =
-        vs.find((v) => v.id === config.bible.defaultVersionId) ??
-        vs.find((v) => v.id.endsWith(`:${config.bible.defaultVersionId}`)) ??
-        vs[0];
-      setVersionId(def?.id ?? '');
-    });
+    provider
+      .listVersions(languageId)
+      .then((vs) => {
+        if (!active) return;
+        setCatalogError(null);
+        setVersions(vs);
+        const def =
+          vs.find((v) => v.id === config.bible.defaultVersionId) ??
+          vs.find((v) => v.id.endsWith(`:${config.bible.defaultVersionId}`)) ??
+          vs[0];
+        setVersionId(def?.id ?? '');
+      })
+      .catch(() => {
+        if (!active) return;
+        setVersions([]);
+        setVersionId('');
+        setCatalogError('Could not load Bible versions. Check your connection and try again.');
+      });
     return () => {
       active = false;
     };
@@ -216,16 +242,25 @@ export function useStudio() {
   useEffect(() => {
     if (!versionId) return;
     let active = true;
-    provider.listBooks(versionId).then((bs) => {
-      if (!active) return;
-      setBooks(bs);
-      const preferred =
-        (verseDefault?.book && bs.find((b) => b.id === verseDefault.book)?.id) ||
-        bs.find((b) => b.id === 'JHN')?.id ||
-        bs[0]?.id ||
-        '';
-      setBookId((prev) => prev || preferred);
-    });
+    provider
+      .listBooks(versionId)
+      .then((bs) => {
+        if (!active) return;
+        setCatalogError(null);
+        setBooks(bs);
+        const preferred =
+          (verseDefault?.book && bs.find((b) => b.id === verseDefault.book)?.id) ||
+          bs.find((b) => b.id === 'JHN')?.id ||
+          bs[0]?.id ||
+          '';
+        setBookId((prev) => prev || preferred);
+      })
+      .catch(() => {
+        if (!active) return;
+        setBooks([]);
+        setBookId('');
+        setCatalogError('Could not load books. Check your connection and try again.');
+      });
     return () => {
       active = false;
     };
@@ -304,12 +339,15 @@ export function useStudio() {
   );
 
   // A background source is exclusive: choosing one clears the others.
+  // Clearing selectedJobId returns Preview to draft mode so a prior render
+  // doesn't mask the newly picked background.
   const setImageFile = useCallback((f: File | null) => {
     setImageFileState(f);
     if (f) {
       setVideoFileState(null);
       setLibraryVideo(null);
       setSharedBg(null);
+      setSelectedJobId(null);
     }
   }, []);
   const setVideoFile = useCallback((f: File | null) => {
@@ -318,6 +356,7 @@ export function useStudio() {
       setImageFileState(null);
       setLibraryVideo(null);
       setSharedBg(null);
+      setSelectedJobId(null);
     }
   }, []);
 
@@ -328,6 +367,7 @@ export function useStudio() {
       setVideoFileState(null);
       setLibraryVideo(null);
       setSharedBg({ url: asset.fileUrl, label: asset.name, kind: asset.kind });
+      setSelectedJobId(null);
     },
     [],
   );
@@ -348,6 +388,7 @@ export function useStudio() {
         kind: 'image',
         attribution: photo.attribution,
       });
+      setSelectedJobId(null);
     },
     [],
   );
@@ -370,6 +411,7 @@ export function useStudio() {
       setVideoFileState(null);
       setSharedBg(null);
       setLibraryVideo({ entry, url });
+      setSelectedJobId(null);
     } finally {
       setLibraryBusy(false);
     }
@@ -383,6 +425,7 @@ export function useStudio() {
       setVideoFileState(null);
       setSharedBg(null);
       setLibraryVideo({ entry, url: importedVideoUrl(entry) });
+      setSelectedJobId(null);
     } finally {
       setLibraryBusy(false);
     }
@@ -392,6 +435,13 @@ export function useStudio() {
 
   const canGenerate =
     !!languageId && !!bookId && fromVerse >= 1 && toVerse >= fromVerse;
+  const generateBlockedReason = !canGenerate
+    ? !languageId
+      ? 'Choose a language'
+      : !bookId
+        ? 'Choose a book'
+        : 'Enter a valid verse range'
+    : null;
 
   const patchJob = useCallback(
     (id: string, patch: Partial<Job>) =>
@@ -640,8 +690,10 @@ export function useStudio() {
     pump,
   ]);
 
+  // null selectedJobId means draft Preview (show form background), not "fall
+  // back to the newest job" — picking a new background clears the selection.
   const selectedJob = useMemo(
-    () => jobs.find((j) => j.id === selectedJobId) ?? jobs[0] ?? null,
+    () => (selectedJobId ? (jobs.find((j) => j.id === selectedJobId) ?? null) : null),
     [jobs, selectedJobId],
   );
   const isRendering = jobs.some((j) => j.status === 'running' || j.status === 'queued');
@@ -651,6 +703,7 @@ export function useStudio() {
     languages,
     versions,
     books,
+    catalogError,
     maxChapter,
     maxVerse: MAX_VERSE,
     // form
@@ -722,6 +775,7 @@ export function useStudio() {
     selectJob: setSelectedJobId,
     isRendering,
     canGenerate,
+    generateBlockedReason,
     generate,
   };
 }

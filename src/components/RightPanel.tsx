@@ -10,7 +10,7 @@ const TABS: { id: RightView; label: string }[] = [
   { id: 'output', label: 'Preview' },
   { id: 'youversion', label: 'YouVersion' },
   { id: 'unsplash', label: 'Unsplash' },
-  { id: 'videos', label: 'Video library' },
+  { id: 'videos', label: 'Videos' },
   { id: 'generated', label: 'Saved assets' },
 ];
 

@@ -26,8 +26,8 @@ const SEARCH_DEBOUNCE_MS = 350;
 
 // Right-panel browser for the team-shared library, scoped by tab:
 // YouVersion (verse backgrounds, grouped by language + category/orientation
-// filters), Unsplash (live photo search + optional team uploads), and the
-// Video library (kind=video).
+// filters), Unsplash (live photo search + optional team uploads), and
+// Videos (kind=video — shared/uploaded video backgrounds).
 export function ImageLibrary({
   studio,
   kind = 'image',
@@ -183,12 +183,12 @@ export function ImageLibrary({
     ? 'YouVersion'
     : isUnsplash
       ? 'Unsplash'
-      : 'Video library';
+      : 'Videos';
   const subtitle = isYouVersion
     ? 'Bible App verse backgrounds'
     : isUnsplash
       ? 'Search millions of free photos'
-      : 'Reusable videos';
+      : 'Shared video backgrounds';
 
   function assetCard(a: SharedAsset) {
     const active = selected?.url === a.fileUrl;
@@ -429,7 +429,7 @@ export function ImageLibrary({
 
       {!isUnsplash && !loading && visible.length === 0 && (
         <p className="text-[14px] text-faint">
-          {kind === 'video' ? 'No videos in the library yet.' : 'No matching backgrounds.'}
+          {kind === 'video' ? 'No shared videos yet. Upload one to get started.' : 'No matching backgrounds.'}
         </p>
       )}
 

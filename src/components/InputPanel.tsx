@@ -233,11 +233,14 @@ export function InputPanel({
   space = 'ads',
   settings = DEFAULT_APP_SETTINGS,
   onBrowse,
+  onGenerate,
 }: {
   studio: Studio;
   space?: 'ads' | 'social' | 'product';
   settings?: AppSettings;
   onBrowse: (view: RightView) => void;
+  /** When set, used instead of `studio.generate` (e.g. mobile jumps to Preview). */
+  onGenerate?: () => void;
 }) {
   const rendering = studio.isRendering;
   const hasBgSource = !!studio.imageFile || !!studio.videoFile || !!studio.sharedBg;
@@ -307,6 +310,11 @@ export function InputPanel({
           onToggle={() => toggle('content')}
         >
           <div className="grid grid-cols-1 gap-x-5 gap-y-6 @[560px]:grid-cols-2">
+            {studio.catalogError && (
+              <p className="@[560px]:col-span-2 text-[13px] font-medium text-brand">
+                {studio.catalogError}
+              </p>
+            )}
             <div>
               <FieldLabel required>Language</FieldLabel>
               <SearchableSelect
@@ -641,7 +649,7 @@ export function InputPanel({
         <Button
           variant="primary"
           size="md"
-          onClick={studio.generate}
+          onClick={onGenerate ?? studio.generate}
           disabled={!studio.canGenerate}
           className="w-full md:h-14 md:px-6 md:text-[16px]"
         >
@@ -655,6 +663,11 @@ export function InputPanel({
             </>
           )}
         </Button>
+        {studio.generateBlockedReason && (
+          <p className="mt-2 text-center text-[12px] font-medium text-muted">
+            {studio.generateBlockedReason}
+          </p>
+        )}
       </div>
     </div>
   );

@@ -89,8 +89,8 @@ export default function App({
     <div className="flex h-dvh flex-col bg-surface">
       {/* Header */}
       <header className="shrink-0 border-b border-line">
-        {/* Mobile header (<md) */}
-        <div className="flex items-center justify-between gap-2 px-4 py-2.5 md:hidden">
+        {/* Mobile / tablet header (<lg) */}
+        <div className="flex items-center justify-between gap-2 px-4 py-2.5 lg:hidden">
           <img src="/icon.svg" alt="" className="h-8 w-8 shrink-0 rounded-[10px]" />
           <div className="min-w-0 flex-1 overflow-x-auto">
             <SpaceSwitcher />
@@ -104,8 +104,8 @@ export default function App({
             <Menu />
           </button>
         </div>
-        {/* Desktop header (≥md) */}
-        <div className="hidden items-center justify-between px-7 py-3.5 md:flex">
+        {/* Desktop header (≥lg) */}
+        <div className="hidden items-center justify-between px-7 py-3.5 lg:flex">
           <div className="flex items-center gap-3">
             <img src="/icon.svg" alt="" className="h-9 w-9 rounded-[11px]" />
             <div className="leading-tight">
@@ -146,9 +146,9 @@ export default function App({
         </div>
       </header>
 
-      {/* Mobile body (<md): one view at a time */}
+      {/* Mobile / tablet body (<lg): one view at a time */}
       {/* NOTE: The mobile and desktop InputPanel below are intentionally separate instances (one hidden per breakpoint) sharing the same `studio`. */}
-      <div className="min-h-0 flex-1 overflow-hidden md:hidden">
+      <div className="min-h-0 flex-1 overflow-hidden lg:hidden">
         {mobileView === 'edit' && (
           <InputPanel
             studio={studio}
@@ -158,6 +158,11 @@ export default function App({
               if (v === 'output') return;
               setMobileLib(v);
               setMobileView('library');
+            }}
+            onGenerate={() => {
+              if (!studio.canGenerate) return;
+              studio.generate();
+              setMobileView('preview');
             }}
           />
         )}
@@ -194,9 +199,9 @@ export default function App({
         )}
       </div>
 
-      {/* Two-panel body (≥md) */}
+      {/* Two-panel body (≥lg) */}
       <div
-        className="hidden min-h-0 flex-1 grid-cols-1 md:grid lg:grid-cols-[var(--left-col)_1fr]"
+        className="hidden min-h-0 flex-1 lg:grid lg:grid-cols-[var(--left-col)_1fr]"
         style={{ '--left-col': `${leftWidth}px` } as React.CSSProperties}
       >
         <aside className="relative min-h-0 border-r border-line bg-surface">
