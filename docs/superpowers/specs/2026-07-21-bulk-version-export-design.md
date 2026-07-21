@@ -8,13 +8,18 @@
 Add a **Bulk Export** feature: pick one verse reference, render a branded verse
 asset (app icon or lockup) for **every** Bible version in the catalog (~3,700
 versions across 2,448 languages), upload each rendered image to **AIR**
-(air.inc), and emit two CSV files:
+(air.inc), and emit three CSV files:
 
 1. **versions.csv** — one row per version: version id, localized reference,
    localized verse text, and the AIR CDN link to the rendered asset.
-2. **geo-backgrounds.csv** — geo-targeted landmark background images (from
-   Unsplash) by country and language, filtered to be non-political and
+2. **geo-backgrounds-by-country.csv** — geo-targeted landmark background images
+   (from Unsplash), one row per country, filtered to be non-political and
    non-religious.
+3. **geo-backgrounds-by-language.csv** — the same images mapped to each language
+   (one row per language → its country's images).
+
+Both geo CSVs are built from the same deduped, safety-filtered Unsplash query
+results, so they never disagree — they are just two views of the same data.
 
 ## Non-goals
 
@@ -24,7 +29,7 @@ versions across 2,448 languages), upload each rendered image to **AIR**
   tail uses the **English Bible App asset** as a fallback (see Decisions).
 - Video output. Bulk export is images only.
 - Compositing geo backgrounds into the version assets. The version batch uses a
-  single shared background; geo images live only in `geo-backgrounds.csv`.
+  single shared background; geo images live only in the geo CSVs.
 
 ## Key decisions (resolved during brainstorming)
 
@@ -38,7 +43,8 @@ versions across 2,448 languages), upload each rendered image to **AIR**
   asset. Verse **reference** and **text** are still localized for all ~3,700.
 - **Output format:** two separate CSV files (not a multi-sheet workbook).
 - **Geo derivation:** derive a primary country per language; source Unsplash
-  landmark images per country (deduped queries), emit **per-language** rows.
+  landmark images per country (deduped queries), then emit **both** a
+  per-country CSV and a per-language CSV from the same results.
 - **Version-asset background:** one shared background chosen for the whole batch.
 - **CDN target:** AIR (air.inc). Reference implementation:
   `/Users/danluk/repos/alfred/air_upload/client.py`.
@@ -63,7 +69,9 @@ Bulk Export tab (/export, client)
 Geo backgrounds (separate action, same tab)
   ├─ languages → primary country (committed table)
   ├─ dedupe by country → Unsplash landmark queries (curated + safety filter)
-  └─ build + download geo-backgrounds.csv  (per-language rows)
+  └─ build + download BOTH:
+        geo-backgrounds-by-country.csv   (one row per country)
+        geo-backgrounds-by-language.csv  (one row per language → its country's images)
 ```
 
 ### Why client-driven
@@ -123,8 +131,12 @@ of a server job's durability for a fraction of the effort.
   quote, CR, or LF; escape embedded quotes by doubling. Verse text WILL contain
   these, so escaping is load-bearing.
 - `buildVersionsCsv(rows)` → columns `version_id, reference, verse_text, air_cdn_link`.
-- `buildGeoBackgroundsCsv(rows)` → columns
-  `country, language, image_url, unsplash_credit`.
+- `buildGeoByCountryCsv(rows)` → columns
+  `country, capital, image_urls, unsplash_credits` (image_urls/credits are the
+  country's images joined with a stable delimiter, e.g. `" | "`).
+- `buildGeoByLanguageCsv(rows)` → columns
+  `language, language_name, country, image_urls, unsplash_credits` (each language
+  maps to its country's images).
 - Pure functions, unit-tested (including the escaping edge cases).
 
 ### 5. Geo backgrounds (`src/lib/export/geoBackgrounds.ts` + committed table)
@@ -141,9 +153,9 @@ of a server job's durability for a fraction of the effort.
   mosque, temple, worship, cross, shrine, prayer…), politics/conflict (protest,
   war, election, politician…), and flags-bearing-text. Also pass
   `content_filter=high` to Unsplash. Prefer landmark/architecture/cityscape tags.
-- Emit per-language rows (each language points at its country's safe images),
-  capping images per country (default 3) and `log()`-ing the cap so coverage is
-  not silently truncated.
+- Produce a single deduped `GeoResult` set (country → safe images), then derive
+  both the by-country and by-language CSVs from it. Cap images per country
+  (default 3) and `log()` the cap so coverage is not silently truncated.
 
 ### 6. Config (`src/config`)
 
@@ -160,12 +172,14 @@ interface VersionExportRow {
   air_cdn_link: string;
 }
 
-interface GeoBackgroundRow {
+interface GeoResult {
   country: string;
-  language: string;
-  image_url: string;
-  unsplash_credit: string;
+  capital: string;
+  images: { url: string; credit: string }[]; // deduped, safety-filtered, capped
+  languages: { code: string; name: string }[]; // languages mapped to this country
 }
+// by-country CSV row: { country, capital, image_urls, unsplash_credits }
+// by-language CSV row: { language, language_name, country, image_urls, unsplash_credits }
 
 // server-only
 async function uploadToAir(bytes: Uint8Array, opts: {
@@ -190,7 +204,8 @@ async function uploadToAir(bytes: Uint8Array, opts: {
 - `versionExport.ts` — orchestration with injected fake deps: concurrency,
   retry-once-then-blank, checkpoint accumulation, progress callbacks.
 - `geoBackgrounds.ts` — `isSafeGeoPhoto` accepts landmarks, rejects
-  religious/political/flag-text photos; per-country dedupe; image cap.
+  religious/political/flag-text photos; per-country dedupe; image cap; and the
+  by-country / by-language CSVs derive consistently from one `GeoResult` set.
 - `air.ts` — request/response shaping and the best-URL fallback order (mocked
   fetch; no network).
 
@@ -204,6 +219,7 @@ async function uploadToAir(bytes: Uint8Array, opts: {
 
 ## Open items for spec review
 
-- Geo CSV granularity: per-language rows (default here) vs per-country rows.
+- Geo CSV granularity: **resolved — emit both** a per-country CSV and a
+  per-language CSV from the same deduped results (three CSVs total).
 - Images-per-country cap (default 3).
 - Whether to expose logo style per export or fix it (default: user-selectable).
