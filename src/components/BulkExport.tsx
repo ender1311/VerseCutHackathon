@@ -6,6 +6,8 @@ import { Button, FieldLabel, Select, SearchableSelect, Stepper } from './ui';
 import { ASPECT_DIMENSIONS, type AspectRatio } from '../config';
 import type { LogoStyle } from '../lib/iconCatalog';
 import { renderImage } from '../lib/render';
+import { isDarkBackground, type Background } from '../lib/compositor';
+import { resolveGradient, gradientFromHex } from '../lib/gradients';
 import { YouVersionInternalProvider, loadBibleManifest } from '../lib/bible/internalProvider';
 import type { Book } from '../lib/bible';
 import { uploadImageToAir } from '../lib/export/airClient';
@@ -39,9 +41,41 @@ function download(name: string, text: string) {
   const a = document.createElement('a');
   a.href = url;
   a.download = name;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  // Defer revoke so the download has started before the URL is invalidated.
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Decode an image URL to an HTMLImageElement (CORS-enabled for canvas use). */
+function decodeImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed to load background: ${src}`));
+    img.src = src;
+  });
+}
+
+/** Bounded-concurrency map (preserves input order in the result). */
+async function mapPool<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, Math.max(1, items.length)) }, worker));
+  return out;
+}
+
+class RateLimitError extends Error {}
 
 async function fetchCountryPhotos(country: string, capital: string): Promise<RawGeoPhoto[]> {
   const out: RawGeoPhoto[] = [];
@@ -49,7 +83,10 @@ async function fetchCountryPhotos(country: string, capital: string): Promise<Raw
     const res = await fetch(
       `/api/unsplash/search?query=${encodeURIComponent(query)}&per_page=10&orientation=landscape`,
     );
-    if (!res.ok) continue;
+    if (res.status === 429) {
+      throw new RateLimitError('Unsplash rate limit hit (429) — wait and retry, or use a production Unsplash key.');
+    }
+    if (!res.ok) continue; // genuine no-results / transient; skip this query
     const json = (await res.json()) as { data?: { photos?: RawGeoPhoto[] } };
     for (const p of json.data?.photos ?? []) out.push(p);
   }
@@ -84,7 +121,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
   const [geoReady, setGeoReady] = useState<{ byCountry: string; byLanguage: string } | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [failReason, setFailReason] = useState<string | null>(null);
+  const [failReasons, setFailReasons] = useState<string[]>([]);
 
   useEffect(() => {
     provider
@@ -99,7 +136,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
   async function runVersions() {
     setRunning(true);
     setError(null);
-    setFailReason(null);
+    setFailReasons([]);
     setRows(null);
     setProgress(null);
     try {
@@ -113,6 +150,28 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
       }
       const ordered = prioritizeVersions(all, DEFAULT_PRIORITY_CODES);
       const versions = limit > 0 ? ordered.slice(0, limit) : ordered;
+
+      // Decode the shared background + compute the light/dark theme ONCE for the
+      // whole run, instead of per version.
+      let backgroundImage: CanvasImageSource | null = null;
+      const sharedUrl = studio.sharedBg?.kind === 'image' ? studio.sharedBg.url : null;
+      if (studio.imageFile) {
+        const u = URL.createObjectURL(studio.imageFile);
+        try {
+          backgroundImage = await decodeImage(u);
+        } finally {
+          URL.revokeObjectURL(u);
+        }
+      } else if (sharedUrl) {
+        backgroundImage = await decodeImage(sharedUrl).catch(() => null);
+      }
+      const bg: Background = backgroundImage
+        ? { type: 'image', image: backgroundImage }
+        : {
+            type: 'gradient',
+            preset: studio.customColor ? gradientFromHex(studio.customColor) : resolveGradient(studio.gradientId),
+          };
+      const dark = isDarkBackground(bg);
 
       // Organize each run into a dated, verse-named folder across destinations,
       // e.g. versecut/2026-07-21/jhn3_16/<versionId>.jpg
@@ -129,6 +188,10 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
             : (blob: Blob, fileName: string) =>
                 uploadImageToAir(blob, exportAssetPath(dateStr, reference, idFromFile(fileName), 'jpg'));
 
+      // Braze media API is rate-limited (100/hr); keep its burst small.
+      const concurrency = destination === 'braze' ? 2 : 8;
+      const failures: string[] = [];
+
       const result = await runVersionExport(
         versions,
         {
@@ -141,20 +204,20 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
           aspect,
           dimensions: ASPECT_DIMENSIONS[aspect],
           logoStyle,
-          // Shared background from the studio picker (image wins over gradient).
-          imageFile: studio.imageFile,
-          imageUrl: studio.sharedBg?.kind === 'image' ? studio.sharedBg.url : null,
+          backgroundImage,
           gradientId: studio.gradientId,
           gradientHex: studio.customColor,
-          concurrency: 8,
+          dark,
+          concurrency,
           onProgress: setProgress,
           onError: (versionId, err) => {
             const m = err instanceof Error ? err.message : String(err);
             console.warn(`[bulk-export] version ${versionId} failed:`, m);
-            setFailReason((prev) => prev ?? `${versionId}: ${m}`);
+            if (failures.length < 20) failures.push(`${versionId}: ${m}`);
           },
         },
       );
+      setFailReasons(failures);
       setRows(result);
       download('versions.csv', buildVersionsCsv(result));
     } catch (e) {
@@ -177,15 +240,21 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
         const info = LANGUAGE_COUNTRY[l.code];
         countries.set(info.country, info.capital);
       }
+      // Bounded concurrency (keep low to respect Unsplash rate limits).
+      const entries = [...countries.entries()];
       const photosByCountry = new Map<string, RawGeoPhoto[]>();
-      for (const [country, capital] of countries) {
-        photosByCountry.set(country, await fetchCountryPhotos(country, capital));
-      }
+      let doneC = 0;
+      await mapPool(entries, 4, async ([country, capital]) => {
+        const photos = await fetchCountryPhotos(country, capital);
+        photosByCountry.set(country, photos);
+        setProgress({ done: ++doneC, total: entries.length, failed: 0 });
+      });
       const results = buildGeoResults(languages, photosByCountry, { maxImages: 3 });
       const byCountry = buildGeoByCountryCsv(results);
       const byLanguage = buildGeoByLanguageCsv(results);
       setGeoReady({ byCountry, byLanguage });
       download('geo-backgrounds-by-country.csv', byCountry);
+      await sleep(400); // stagger the second download so both files save
       download('geo-backgrounds-by-language.csv', byLanguage);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Geo export failed');
@@ -356,10 +425,15 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
             {progress.done}/{progress.total} rendered · {progress.failed} failed
           </p>
         )}
-        {failReason && (
-          <p className="mt-2 max-w-2xl break-words text-[13px] text-brand">
-            First failure — {failReason}
-          </p>
+        {failReasons.length > 0 && (
+          <div className="mt-2 max-w-2xl break-words text-[13px] text-brand">
+            <div>Failures ({failReasons.length} shown):</div>
+            <ul className="list-disc pl-5">
+              {failReasons.map((r, i) => (
+                <li key={i}>{r}</li>
+              ))}
+            </ul>
+          </div>
         )}
         {rows && (
           <div className="mt-2 flex items-center gap-3 text-[13px]">

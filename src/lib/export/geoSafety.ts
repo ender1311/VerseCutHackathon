@@ -12,7 +12,13 @@ const BLOCKED_TERMS = [
   'weapon', 'gun', 'army', 'battle', 'demonstration',
 ];
 
+// Match blocked terms only as whole words, so substrings like "war" in
+// "Warsaw" or "cross" in "crossing" don't reject legitimate landmark photos.
+const BLOCKED_RE = new RegExp(
+  `\\b(${BLOCKED_TERMS.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})\\b`,
+  'i',
+);
+
 export function isSafeGeoPhoto(photo: { description: string | null }): boolean {
-  const text = (photo.description ?? '').toLowerCase();
-  return !BLOCKED_TERMS.some((term) => text.includes(term));
+  return !BLOCKED_RE.test(photo.description ?? '');
 }

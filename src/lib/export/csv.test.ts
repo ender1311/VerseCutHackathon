@@ -17,6 +17,13 @@ describe('csvCell', () => {
     expect(csvCell('say "hi"')).toBe('"say ""hi"""');
     expect(csvCell('line1\nline2')).toBe('"line1\nline2"');
   });
+  it('neutralizes spreadsheet formula injection with a leading apostrophe', () => {
+    expect(csvCell('+1')).toBe("'+1");
+    expect(csvCell('-cmd')).toBe("'-cmd");
+    expect(csvCell('@SUM(A1)')).toBe("'@SUM(A1)");
+    // Leading '=' plus a comma → apostrophe-prefixed AND RFC-4180 quoted.
+    expect(csvCell('=HYPERLINK("x","y")')).toBe('"\'=HYPERLINK(""x"",""y"")"');
+  });
 });
 
 describe('toCsv', () => {

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { getAwsEnv, uploadToS3 } from '../src/lib/server/aws';
-import { s3KeyForVersion } from '../src/lib/export/awsPath';
+import { exportAssetPath } from '../src/lib/export/awsPath';
 
 const here = dirname(fileURLToPath(import.meta.url));
 try {
@@ -28,7 +28,7 @@ async function main() {
     process.exit(2);
   }
   const bytes = new Uint8Array(readFileSync(process.argv[2] ?? '/tmp/air-1080.jpg'));
-  const key = s3KeyForVersion({ bookId: 'JHN', chapter: 3, fromVerse: 16, toVerse: 16 }, '111');
+  const key = exportAssetPath('test', { bookId: 'JHN', chapter: 3, fromVerse: 16, toVerse: 16 }, '111');
   console.error(`Uploading to s3://${env.bucket}/${key} …`);
   const { url } = await uploadToS3(bytes, { key, mime: 'image/jpeg', env });
   console.log('Public URL:', url);

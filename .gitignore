@@ -27,3 +27,4 @@ videos/product/.pm-probe*
 videos/product/reference/
 .pm-probe/
 .env*
+.auth/

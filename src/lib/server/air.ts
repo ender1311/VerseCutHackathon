@@ -30,7 +30,7 @@ async function postWhenReady(
   headers: Record<string, string>,
   body: Record<string, unknown>,
 ): Promise<Response> {
-  const deadline = Date.now() + 45_000;
+  const deadline = Date.now() + 20_000;
   let backoff = 350;
   const payload = JSON.stringify(body);
   for (;;) {
@@ -64,19 +64,21 @@ async function getPreviewWhenReady(
   versionId: string,
   headers: Record<string, string>,
 ): Promise<string | null> {
-  const deadline = Date.now() + 20_000;
+  // Bounded so a single asset can't hold the serverless function open too long,
+  // especially under concurrent uploads (route maxDuration is 60s).
+  const deadline = Date.now() + 12_000;
   let backoff = 500;
   for (;;) {
     const res = await fetchImpl(`${baseUrl}/v1/assets/${assetId}/versions/${versionId}`, {
       headers,
     });
     if (res.ok) {
-      const ver = (await res.json()) as {
+      const ver = (await res.json().catch(() => null)) as {
         urls?: { preview?: string; image?: string; thumbnail?: string };
-      };
-      const url = ver.urls?.preview ?? ver.urls?.image ?? ver.urls?.thumbnail;
+      } | null;
+      const url = ver?.urls?.preview ?? ver?.urls?.image ?? ver?.urls?.thumbnail;
       if (url) return url;
-      // 200 but urls not populated yet — keep polling.
+      // 200 but urls not populated yet (or non-JSON) — keep polling.
     } else if (res.status !== 404) {
       return null;
     }
@@ -130,8 +132,8 @@ export async function uploadToAir(
     { versionId: reg.versionId },
   );
   if (cdnRes.ok) {
-    const cdn = (await cdnRes.json()) as { url?: string };
-    if (cdn.url) return { cdnUrl: cdn.url };
+    const cdn = (await cdnRes.json().catch(() => null)) as { url?: string } | null;
+    if (cdn?.url) return { cdnUrl: cdn.url };
   }
 
   const preview = await getPreviewWhenReady(
@@ -144,6 +146,8 @@ export async function uploadToAir(
   if (preview) return { cdnUrl: preview };
 
   // Last resort: the imgix delivery URL follows this shape once the asset is
-  // processed. It may 404 briefly if processing hasn't finished.
-  return { cdnUrl: `https://air-prod.imgix.net/${reg.versionId}.jpg` };
+  // processed (may 404 briefly if processing hasn't finished). Match the
+  // uploaded file's extension so imgix can find the source object.
+  const imgixExt = opts.mime === 'image/png' ? 'png' : opts.mime === 'image/webp' ? 'webp' : 'jpg';
+  return { cdnUrl: `https://air-prod.imgix.net/${reg.versionId}.${imgixExt}` };
 }

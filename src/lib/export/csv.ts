@@ -2,9 +2,15 @@ import type { GeoResult, VersionExportRow } from './types';
 
 const IMG_JOIN = ' | ';
 
-/** RFC-4180: quote a field containing comma, quote, CR, or LF; double quotes. */
+/**
+ * Escape a CSV field. RFC-4180 quoting for comma/quote/CR/LF, plus
+ * spreadsheet-formula-injection neutralization: values starting with = + - @
+ * (or a leading tab/CR) get a leading apostrophe so Excel/Sheets treat them as
+ * text, not formulas. Untrusted text (Unsplash credits, verse text) flows here.
+ */
 export function csvCell(value: string): string {
-  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
 export function toCsv(headers: string[], rows: string[][]): string {

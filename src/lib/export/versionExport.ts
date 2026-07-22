@@ -26,6 +26,10 @@ export interface VersionExportOptions {
   imageUrl?: string | null;
   /** Shared uploaded background image applied to every version. */
   imageFile?: File | null;
+  /** Pre-decoded shared background image (avoids per-version decode). */
+  backgroundImage?: CanvasImageSource | null;
+  /** Pre-computed light/dark theme (avoids per-version luminance sampling). */
+  dark?: boolean;
   concurrency?: number;
   isDone?: (versionId: string) => boolean;
   onProgress?: (p: { done: number; total: number; failed: number }) => void;
@@ -56,6 +60,8 @@ async function exportOne(
     imageFile: opts.imageFile ?? null,
     videoFile: null,
     imageUrl: opts.imageUrl ?? null,
+    backgroundImage: opts.backgroundImage ?? null,
+    dark: opts.dark,
     mimeType: 'image/jpeg',
     languageId: logo.languageId,
     logoStyle: logo.logoStyle,
@@ -94,6 +100,15 @@ export async function runVersionExport(
   let failed = 0;
   let next = 0;
 
+  // Callbacks are user-supplied; never let one abort a worker or orphan the pool.
+  const safe = (fn: (() => void) | undefined) => {
+    try {
+      fn?.();
+    } catch {
+      /* ignore callback errors */
+    }
+  };
+
   async function worker() {
     while (next < pending.length) {
       const version = pending[next++];
@@ -102,9 +117,12 @@ export async function runVersionExport(
         try {
           row = await exportOne(version, deps, opts);
         } catch (err) {
-          if (attempt === 1) {
+          if (attempt === 0) {
+            // Brief backoff with jitter before the single retry.
+            await new Promise((r) => setTimeout(r, 250 + Math.floor(Math.random() * 350)));
+          } else {
             failed++;
-            opts.onError?.(version.id, err);
+            safe(() => opts.onError?.(version.id, err));
             row = {
               version_id: version.id,
               reference: '',
@@ -116,10 +134,11 @@ export async function runVersionExport(
       }
       if (row) {
         rows.push(row);
-        opts.onRow?.(row);
+        const r = row;
+        safe(() => opts.onRow?.(r));
       }
       done++;
-      opts.onProgress?.({ done, total, failed });
+      safe(() => opts.onProgress?.({ done, total, failed }));
     }
   }
 

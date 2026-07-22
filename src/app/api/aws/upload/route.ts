@@ -1,4 +1,7 @@
 import { getAwsEnv, uploadToS3 } from '@/lib/server/aws';
+import { validateUploadFile, isValidExportKey } from '@/lib/server/uploadGuards';
+
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const env = getAwsEnv();
@@ -12,16 +15,16 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const file = form.get('file');
   const key = form.get('key');
-  if (!(file instanceof File)) {
-    return Response.json({ error: 'file field is required' }, { status: 400 });
-  }
-  if (typeof key !== 'string' || !key) {
-    return Response.json({ error: 'key field is required' }, { status: 400 });
+  const v = validateUploadFile(file);
+  if (!v.ok) return Response.json({ error: v.error }, { status: v.status });
+  if (!isValidExportKey(key)) {
+    return Response.json({ error: 'invalid key (must match versecut/<date>/<ref>/<id>)' }, { status: 400 });
   }
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  const f = file as File;
+  const bytes = new Uint8Array(await f.arrayBuffer());
   try {
-    const { url } = await uploadToS3(bytes, { key, mime: file.type || 'image/jpeg', env });
+    const { url } = await uploadToS3(bytes, { key, mime: f.type || 'image/jpeg', env });
     return Response.json({ data: { url } });
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);

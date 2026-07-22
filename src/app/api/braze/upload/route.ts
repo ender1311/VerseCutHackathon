@@ -1,4 +1,7 @@
 import { getBrazeEnv, uploadToBraze } from '@/lib/server/braze';
+import { validateUploadFile } from '@/lib/server/uploadGuards';
+
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const env = getBrazeEnv();
@@ -9,15 +12,15 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const file = form.get('file');
   const name = form.get('name');
-  if (!(file instanceof File)) {
-    return Response.json({ error: 'file field is required' }, { status: 400 });
-  }
+  const v = validateUploadFile(file);
+  if (!v.ok) return Response.json({ error: v.error }, { status: v.status });
+  const f = file as File;
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  const bytes = new Uint8Array(await f.arrayBuffer());
   try {
     const { url } = await uploadToBraze(bytes, {
-      name: typeof name === 'string' && name ? name : file.name || 'asset.jpg',
-      mime: file.type || 'image/jpeg',
+      name: typeof name === 'string' && name ? name : f.name || 'asset.jpg',
+      mime: f.type || 'image/jpeg',
       env,
     });
     return Response.json({ data: { url } });
