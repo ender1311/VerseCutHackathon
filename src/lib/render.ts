@@ -152,7 +152,8 @@ export async function renderImage(input: RenderInput): Promise<RenderedAsset> {
       verseFont,
       template: input.template,
       cta: input.cta ?? undefined,
-      logoPlate: input.template !== 'promo' && input.logoStyle === 'logo-light',
+      // Light lockups keep their transparent background (no white plate).
+      logoPlate: false,
       t: 1,
     });
 
@@ -366,7 +367,8 @@ async function captureCanvas(
             verseFont,
             template: input.template,
             cta: input.cta ?? undefined,
-            logoPlate: input.template !== 'promo' && input.logoStyle === 'logo-light',
+            // Light lockups keep their transparent background (no white plate).
+      logoPlate: false,
             t,
           });
           onProgress(t);
