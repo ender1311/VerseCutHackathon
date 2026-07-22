@@ -6,8 +6,8 @@ import {
   publicS3Url,
   countrySlug,
   geoAssetPath,
-} from './awsPath';
-import { isValidExportKey } from '../server/uploadGuards';
+} from '@/lib/export/awsPath';
+import { isValidExportKey } from '@/lib/server/uploadGuards';
 
 const JHN = { bookId: 'JHN', chapter: 3, fromVerse: 16, toVerse: 16 };
 const RANGE = { bookId: '1JN', chapter: 4, fromVerse: 7, toVerse: 8 };
