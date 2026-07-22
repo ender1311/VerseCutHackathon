@@ -166,14 +166,9 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
       if (p.aspect) setAspect(p.aspect as AspectRatio);
       if (p.destination) setDestination(p.destination as Destination);
       if (typeof p.limit === 'number') {
-        // Braze can't exceed its hourly quota, even from restored prefs.
-        const restored =
-          p.destination === 'braze'
-            ? p.limit === 0 || p.limit > BRAZE_HOURLY_LIMIT
-              ? BRAZE_HOURLY_LIMIT
-              : p.limit
-            : p.limit;
-        setLimit(restored);
+        // Normalize restored prefs to a sane count; Braze is capped to its quota.
+        const base = Math.max(0, Math.floor(p.limit));
+        setLimit(p.destination === 'braze' ? effectiveExportLimit('braze', base) : base);
       }
       if (p.exportType === 'versions' || p.exportType === 'geo') setExportType(p.exportType);
       if (p.gradientId) studio.setGradientId(p.gradientId);
@@ -682,9 +677,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
               onChange={(v) => {
                 setDestination(v);
                 // Braze can't exceed its hourly quota — clamp the limit on select.
-                if (v === 'braze') {
-                  setLimit((n) => (n === 0 || n > BRAZE_HOURLY_LIMIT ? BRAZE_HOURLY_LIMIT : n));
-                }
+                if (v === 'braze') setLimit((n) => effectiveExportLimit('braze', n));
               }}
               options={DESTINATIONS}
             />
