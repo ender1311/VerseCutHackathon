@@ -1,4 +1,5 @@
 import { withAuth } from '@workos-inc/authkit-nextjs';
+import { isAllowedEmailDomain } from '@/lib/auth/domain';
 
 export interface CurrentUser {
   id: string;
@@ -11,7 +12,9 @@ export interface CurrentUser {
  */
 export async function currentUser(): Promise<CurrentUser | null> {
   const { user } = await withAuth();
-  if (user) return { id: user.id, email: user.email };
+  if (user && isAllowedEmailDomain(user.email)) {
+    return { id: user.id, email: user.email };
+  }
   const bypass =
     process.env.NODE_ENV !== 'production' && process.env.DISABLE_AUTH === 'true';
   return bypass ? { id: 'dev-user', email: 'dev@local' } : null;

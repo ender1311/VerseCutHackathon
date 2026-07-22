@@ -26,7 +26,9 @@ export default async function LoginPage({
 
         {error && (
           <p className="mt-5 rounded-lg border border-brand/20 bg-brand/5 px-4 py-3 text-center text-[13px] text-brand">
-            Sign in failed. Please try again.
+            {error === 'unauthorized'
+              ? 'Access is limited to YouVersion accounts. Sign in with your YouVersion email.'
+              : 'Sign in failed. Please try again.'}
           </p>
         )}
 

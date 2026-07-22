@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authkit, handleAuthkitProxy } from '@workos-inc/authkit-nextjs';
 import { isPublic } from '@/lib/auth/route-access';
+import { isAllowedEmailDomain } from '@/lib/auth/domain';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -12,7 +13,12 @@ export async function middleware(request: NextRequest) {
   const bypass =
     process.env.NODE_ENV !== 'production' && process.env.DISABLE_AUTH === 'true';
 
-  if (!bypass && !session.user && !isPublic(pathname)) {
+  // A session whose email isn't on the org allowlist is treated as
+  // unauthorized, so a stale/off-domain cookie can't reach any gated route.
+  // /callback/verify (public) handles clearing it and messaging the user.
+  const authorized = session.user && isAllowedEmailDomain(session.user.email);
+
+  if (!bypass && !authorized && !isPublic(pathname)) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

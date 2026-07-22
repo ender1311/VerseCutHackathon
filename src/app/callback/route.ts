@@ -1,5 +1,5 @@
 import { handleAuth } from '@workos-inc/authkit-nextjs';
 
-// WorkOS redirects here after sign-in; this completes the session then sends
-// the user to the app root.
-export const GET = handleAuth({ returnPathname: '/' });
+// WorkOS redirects here after sign-in; this completes the session then hands off
+// to /callback/verify, which enforces the org email-domain allowlist.
+export const GET = handleAuth({ returnPathname: '/callback/verify' });
