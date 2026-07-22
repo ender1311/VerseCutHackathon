@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAllowedEmailDomain } from './domain';
+import { isAllowedEmailDomain } from '@/lib/auth/domain';
 
 describe('isAllowedEmailDomain', () => {
   it('allows configured org domains', () => {

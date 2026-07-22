@@ -13,9 +13,10 @@ export async function GET(request: Request) {
   }
 
   if (!isAllowedEmailDomain(user.email)) {
+    // Log only the domain — never the full address or user id — to keep PII out
+    // of logs (CWE-532) while still surfacing which domains get rejected.
     console.warn('[auth-callback] rejected non-allowed domain', {
-      email: user.email,
-      userId: user.id,
+      domain: user.email.split('@')[1] ?? 'unknown',
     });
     await signOut({ returnTo: '/login?error=unauthorized' });
     return NextResponse.redirect(

@@ -22,7 +22,11 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    return handleAuthkitProxy(request, headers, { redirect: '/login' });
+    // An authenticated-but-off-domain session must be cleared, not just bounced:
+    // send it to /callback/verify (public), which signs it out with the
+    // unauthorized message. A request with no session just goes to /login.
+    const redirect = session.user ? '/callback/verify' : '/login';
+    return handleAuthkitProxy(request, headers, { redirect });
   }
 
   return handleAuthkitProxy(request, headers);
