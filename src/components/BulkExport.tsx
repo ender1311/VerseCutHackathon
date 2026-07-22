@@ -66,6 +66,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
   const [logoStyle, setLogoStyle] = useState<LogoStyle>('logo-light');
   const [aspect, setAspect] = useState<AspectRatio>('1:1');
   const [destination, setDestination] = useState<Destination>('aws');
+  const [exportType, setExportType] = useState<'versions' | 'geo'>('versions');
 
   const [books, setBooks] = useState<Book[]>([]);
   const [bookId, setBookId] = useState('JHN');
@@ -310,21 +311,43 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
           </p>
         </div>
 
-        <div className="mt-6 max-w-xs">
-          <FieldLabel>Destination</FieldLabel>
-          <Select
-            value={destination}
-            onChange={(v) => setDestination(v)}
-            options={DESTINATIONS}
-          />
+        <div className="mt-6 grid max-w-lg grid-cols-2 gap-4">
+          <div>
+            <FieldLabel>Export</FieldLabel>
+            <Select
+              value={exportType}
+              onChange={(v) => setExportType(v)}
+              options={[
+                { value: 'versions', label: 'Version assets' },
+                { value: 'geo', label: 'Geo backgrounds' },
+              ]}
+            />
+          </div>
+          {exportType === 'versions' && (
+            <div>
+              <FieldLabel>Destination</FieldLabel>
+              <Select
+                value={destination}
+                onChange={(v) => setDestination(v)}
+                options={DESTINATIONS}
+              />
+            </div>
+          )}
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button variant="primary" onClick={runVersions} disabled={running}>
-            {running ? 'Working…' : limit > 0 ? `Export ${limit} versions` : 'Export all versions'}
-          </Button>
-          <Button variant="secondary" onClick={runGeo} disabled={running}>
-            Export geo backgrounds
+        <div className="mt-6">
+          <Button
+            variant="primary"
+            onClick={exportType === 'geo' ? runGeo : runVersions}
+            disabled={running}
+          >
+            {running
+              ? 'Working…'
+              : exportType === 'geo'
+                ? 'Export geo backgrounds'
+                : limit > 0
+                  ? `Export ${limit} versions`
+                  : 'Export all versions'}
           </Button>
         </div>
 

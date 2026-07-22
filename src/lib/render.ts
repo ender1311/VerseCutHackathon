@@ -1,7 +1,7 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { config, type AspectRatio } from '../config';
-import { composeFrame, ensureFontsReady, type Background } from './compositor';
+import { composeFrame, ensureFontsReady, isDarkBackground, type Background } from './compositor';
 import { resolveGradient, gradientFromHex } from './gradients';
 import type { Passage } from './bible';
 import { BIBLE_APP_ASSETS, type LogoStyle } from './iconCatalog';
@@ -41,10 +41,16 @@ export interface RenderInput {
   gradientHex?: string | null;
 }
 
-/** The promo template uses the horizontal light lockup; classic uses the chosen style. */
-function effectiveLogoStyle(input: RenderInput): LogoStyle {
+/**
+ * Choose the lockup that matches the background: on a dark background use the
+ * light-artwork lockup ('logo-dark'), on a light background use the dark-artwork
+ * lockup ('logo-light'). 'icon-only' is background-agnostic and kept as-is.
+ */
+function chooseLogoStyle(input: RenderInput, dark: boolean): LogoStyle {
   if (input.template === 'promo') return 'logo-light';
-  return input.logoStyle ?? config.brand.defaultLogoStyle;
+  const chosen = input.logoStyle ?? config.brand.defaultLogoStyle;
+  if (chosen === 'icon-only') return 'icon-only';
+  return dark ? 'logo-dark' : 'logo-light';
 }
 
 /** Resolve the corner-logo path, optionally localized to the language + style. */
@@ -127,10 +133,11 @@ async function buildBackground(
 export async function renderImage(input: RenderInput): Promise<RenderedAsset> {
   await ensureFontsReady();
   const verseFont = await loadVerseFont(input.passage.text, input.languageId);
-  const logo = await loadImage(
-    resolveLogoPath(input.languageId, effectiveLogoStyle(input)),
-  ).catch(() => null);
   const { background, cleanup } = await buildBackground(input);
+  const dark = input.template === 'promo' ? false : isDarkBackground(background);
+  const logo = await loadImage(
+    resolveLogoPath(input.languageId, chooseLogoStyle(input, dark)),
+  ).catch(() => null);
 
   const canvas = document.createElement('canvas');
   canvas.width = input.dimensions.width;
@@ -152,7 +159,9 @@ export async function renderImage(input: RenderInput): Promise<RenderedAsset> {
       verseFont,
       template: input.template,
       cta: input.cta ?? undefined,
-      logoPlate: input.template !== 'promo' && input.logoStyle === 'logo-light',
+      dark,
+      // Adaptive lockup already matches the background; no plate needed.
+      logoPlate: false,
       t: 1,
     });
 
@@ -298,6 +307,7 @@ async function captureCanvas(
   input: RenderInput,
   background: Background,
   logo: HTMLImageElement | null,
+  dark: boolean,
   mimeType: string,
   onProgress: (fraction: number) => void,
 ): Promise<Blob> {
@@ -366,7 +376,8 @@ async function captureCanvas(
             verseFont,
             template: input.template,
             cta: input.cta ?? undefined,
-            logoPlate: input.template !== 'promo' && input.logoStyle === 'logo-light',
+            dark,
+            logoPlate: false,
             t,
           });
           onProgress(t);
@@ -434,12 +445,13 @@ export async function renderVideo(
   cb: VideoRenderCallbacks = {},
 ): Promise<RenderedAsset> {
   await ensureFontsReady();
+  const { background, cleanup } = await buildBackground(input);
+  const dark = input.template === 'promo' ? false : isDarkBackground(background);
   const logo = await loadImage(
-    resolveLogoPath(input.languageId, effectiveLogoStyle(input)),
+    resolveLogoPath(input.languageId, chooseLogoStyle(input, dark)),
   ).catch(
     () => null,
   );
-  const { background, cleanup } = await buildBackground(input);
 
   const recording = pickRecordingMime();
   let captured: Blob;
@@ -449,6 +461,7 @@ export async function renderVideo(
       input,
       background,
       logo,
+      dark,
       recording.mime,
       cb.onCapture ?? (() => {}),
     );

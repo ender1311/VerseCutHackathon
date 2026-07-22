@@ -30,6 +30,12 @@ export interface ComposeOptions {
   verseFont?: VerseFontInfo;
   /** Draw a light plate behind the logo (for dark-artwork "light" lockups). */
   logoPlate?: boolean;
+  /**
+   * Background is dark → use light ink (white text/ref) + the light-artwork
+   * lockup. When false, use dark ink + the dark-artwork lockup. Defaults to
+   * true (the historical dark-scrim treatment).
+   */
+  dark?: boolean;
   /** Layout template. 'classic' = dark scrim + corner logo; 'promo' = light, centered lockup + CTA. */
   template?: 'classic' | 'promo';
   /** Call-to-action line (promo template), e.g. "Download the Bible App!". */
@@ -83,6 +89,44 @@ function drawGradientBackground(
   radial.addColorStop(1, p.glow.replace(/,[^,]*\)$/, ',0)'));
   ctx.fillStyle = radial;
   ctx.fillRect(0, 0, w, h);
+}
+
+/**
+ * Estimate whether a background is dark in the lower region (where the verse
+ * text + logo sit), so callers can pick matching ink + lockup. Renders the
+ * background into a tiny offscreen canvas and averages perceived luminance.
+ * Returns true (dark) if it can't sample.
+ */
+export function isDarkBackground(background: Background): boolean {
+  if (typeof document === 'undefined') return true;
+  const S = 64;
+  const c = document.createElement('canvas');
+  c.width = S;
+  c.height = S;
+  const cx = c.getContext('2d');
+  if (!cx) return true;
+  if (background.type === 'gradient') {
+    drawGradientBackground(cx, S, S, background.preset);
+  } else if (background.type === 'image') {
+    const img = background.image as HTMLImageElement;
+    drawCover(cx, img, img.naturalWidth, img.naturalHeight, S, S, 1);
+  } else {
+    const v = background.video;
+    drawCover(cx, v, v.videoWidth, v.videoHeight, S, S, 1);
+  }
+  let sum = 0;
+  let n = 0;
+  try {
+    // Lower half only — that's where the content is anchored.
+    const data = cx.getImageData(0, S / 2, S, S / 2).data;
+    for (let i = 0; i < data.length; i += 4) {
+      sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+      n++;
+    }
+  } catch {
+    return true; // tainted canvas (cross-origin) — assume dark + scrim
+  }
+  return n === 0 ? true : sum / n < 140;
 }
 
 /** Wrap text to fit maxWidth at the given font size. Returns the lines. */
@@ -183,14 +227,19 @@ export function composeFrame(
     drawCover(ctx, v, v.videoWidth, v.videoHeight, w, h, zoom);
   }
 
-  // 2. Contrast: global darken + stronger bottom scrim
-  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  // 2. Contrast: global tint + stronger bottom scrim, in the ink's opposite
+  //    tone so text stays legible over busy photos. Dark bg → dark scrim +
+  //    white ink; light bg → light scrim + dark ink.
+  const dark = opts.dark ?? true;
+  const ink = dark ? '#ffffff' : '#101010';
+  const scrimRGB = dark ? '0,0,0' : '255,255,255';
+  ctx.fillStyle = `rgba(${scrimRGB},0.28)`;
   ctx.fillRect(0, 0, w, h);
 
   const scrim = ctx.createLinearGradient(0, h * 0.32, 0, h);
-  scrim.addColorStop(0, 'rgba(0,0,0,0)');
-  scrim.addColorStop(0.55, 'rgba(0,0,0,0.45)');
-  scrim.addColorStop(1, 'rgba(0,0,0,0.82)');
+  scrim.addColorStop(0, `rgba(${scrimRGB},0)`);
+  scrim.addColorStop(0.55, `rgba(${scrimRGB},0.45)`);
+  scrim.addColorStop(1, `rgba(${scrimRGB},0.86)`);
   ctx.fillStyle = scrim;
   ctx.fillRect(0, 0, w, h);
 
@@ -230,8 +279,8 @@ export function composeFrame(
   ctx.direction = rtl ? 'rtl' : 'ltr';
   ctx.textAlign = align;
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = '#ffffff';
-  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.fillStyle = ink;
+  ctx.shadowColor = dark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.5)';
   ctx.shadowBlur = Math.round(size * 0.25);
   ctx.shadowOffsetY = 2;
   ctx.font = `600 ${size}px '${vf.family}', Georgia, serif`;
@@ -246,7 +295,8 @@ export function composeFrame(
   //    which would break shaping/ligatures).
   ctx.save();
   ctx.globalAlpha = easeOut(Math.min(1, Math.max(0, (t - 0.25) / 0.5)));
-  ctx.fillStyle = '#fe5562';
+  // Reference matches the verse/logo ink (light on dark, dark on light).
+  ctx.fillStyle = ink;
   const refText = casedScript ? opts.reference.toUpperCase() : opts.reference;
   const label = opts.versionAbbreviation
     ? `${refText}  ·  ${opts.versionAbbreviation}`
