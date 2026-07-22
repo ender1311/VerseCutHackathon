@@ -27,11 +27,12 @@ export function buildVersionsCsv(rows: VersionExportRow[]): string {
 
 export function buildGeoByCountryCsv(results: GeoResult[]): string {
   return toCsv(
-    ['country', 'capital', 'image_urls', 'unsplash_credits'],
+    ['country', 'capital', 'image_urls', 'cdn_urls', 'unsplash_credits'],
     results.map((g) => [
       g.country,
       g.capital,
       g.images.map((i) => i.url).join(IMG_JOIN),
+      g.images.map((i) => i.cdnUrl ?? '').join(IMG_JOIN),
       g.images.map((i) => i.credit).join(IMG_JOIN),
     ]),
   );
@@ -41,10 +42,14 @@ export function buildGeoByLanguageCsv(results: GeoResult[]): string {
   const rows: string[][] = [];
   for (const g of results) {
     const urls = g.images.map((i) => i.url).join(IMG_JOIN);
+    const cdnUrls = g.images.map((i) => i.cdnUrl ?? '').join(IMG_JOIN);
     const credits = g.images.map((i) => i.credit).join(IMG_JOIN);
     for (const lang of g.languages) {
-      rows.push([lang.code, lang.name, g.country, urls, credits]);
+      rows.push([lang.code, lang.name, g.country, urls, cdnUrls, credits]);
     }
   }
-  return toCsv(['language', 'language_name', 'country', 'image_urls', 'unsplash_credits'], rows);
+  return toCsv(
+    ['language', 'language_name', 'country', 'image_urls', 'cdn_urls', 'unsplash_credits'],
+    rows,
+  );
 }

@@ -8,6 +8,8 @@ export interface VersionExportRow {
 export interface GeoImage {
   url: string;
   credit: string;
+  /** CDN URL after the photo is uploaded to the chosen destination (blank if not uploaded / failed). */
+  cdnUrl?: string;
 }
 
 export interface GeoResult {

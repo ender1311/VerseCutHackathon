@@ -13,7 +13,7 @@ import type { Book } from '../lib/bible';
 import { uploadImageToAir } from '../lib/export/airClient';
 import { uploadImageToAws } from '../lib/export/awsClient';
 import { uploadImageToBraze } from '../lib/export/brazeClient';
-import { exportFolder, exportAssetPath } from '../lib/export/awsPath';
+import { exportFolder, exportAssetPath, geoAssetPath, countrySlug } from '../lib/export/awsPath';
 import { runVersionExport, type ExportVersion } from '../lib/export/versionExport';
 import { useStudio } from '../lib/useStudio';
 import { GradientPicker } from './studio/controls';
@@ -77,6 +77,39 @@ async function mapPool<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>
   }
   await Promise.all(Array.from({ length: Math.min(limit, Math.max(1, items.length)) }, worker));
   return out;
+}
+
+/** Load an image URL and re-encode it to a JPEG blob for upload. */
+async function imageUrlToJpegBlob(url: string): Promise<Blob> {
+  const img = await decodeImage(url);
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth || img.width;
+  canvas.height = img.naturalHeight || img.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('canvas 2d context unavailable');
+  ctx.drawImage(img, 0, 0);
+  return await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('canvas.toBlob returned null'))),
+      'image/jpeg',
+      0.9,
+    ),
+  );
+}
+
+/** Pick the per-destination uploader for a geo background photo. */
+function geoUploaderFor(
+  dest: Destination,
+  dateStr: string,
+): (blob: Blob, country: string, index: number) => Promise<string> {
+  if (dest === 'aws') {
+    return (blob, country, index) => uploadImageToAws(blob, geoAssetPath(dateStr, country, index, 'jpg'));
+  }
+  if (dest === 'braze') {
+    return (blob, country, index) =>
+      uploadImageToBraze(blob, `versecut/${dateStr}/geo/${countrySlug(country)}_${index}`);
+  }
+  return (blob, country, index) => uploadImageToAir(blob, geoAssetPath(dateStr, country, index, 'jpg'));
 }
 
 class RateLimitError extends Error {}
@@ -385,6 +418,32 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
         setProgress({ done: ++doneC, total: entries.length, failed: 0 });
       });
       const results = buildGeoResults(languages, photosByCountry, { maxImages: 3 });
+
+      // Upload every geo photo to the chosen destination so the CSV carries a
+      // stable CDN link, not just the Unsplash URL. Attribution (image_urls +
+      // unsplash_credits) is preserved alongside per Unsplash's guidelines.
+      const dateStr = new Date().toLocaleDateString('en-CA');
+      const uploadGeo = geoUploaderFor(destination, dateStr);
+      const tasks = results.flatMap((g) => g.images.map((img, index) => ({ g, img, index })));
+      // Same per-destination limits as the version export (Braze 100/hr; AIR
+      // 15 req/s + 10 concurrent; AWS/S3 uncapped).
+      const geoConcurrency = destination === 'braze' ? 2 : destination === 'air' ? 6 : 8;
+      const geoFailures: string[] = [];
+      let doneU = 0;
+      await mapPool(tasks, geoConcurrency, async ({ g, img, index }) => {
+        try {
+          const blob = await imageUrlToJpegBlob(img.url);
+          img.cdnUrl = await uploadGeo(blob, g.country, index);
+        } catch (err) {
+          const m = err instanceof Error ? err.message : String(err);
+          console.warn(`[geo-export] ${g.country} #${index + 1} failed:`, m);
+          if (geoFailures.length < 20) geoFailures.push(`${g.country} #${index + 1}: ${m}`);
+        } finally {
+          setProgress({ done: ++doneU, total: tasks.length, failed: geoFailures.length });
+        }
+      });
+      setFailReasons(geoFailures);
+
       const byCountry = buildGeoByCountryCsv(results);
       const byLanguage = buildGeoByLanguageCsv(results);
       setGeoReady({ byCountry, byLanguage });
@@ -529,16 +588,14 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
               ]}
             />
           </div>
-          {exportType === 'versions' && (
-            <div>
-              <FieldLabel>Destination</FieldLabel>
-              <Select
-                value={destination}
-                onChange={(v) => setDestination(v)}
-                options={DESTINATIONS}
-              />
-            </div>
-          )}
+          <div>
+            <FieldLabel>Destination</FieldLabel>
+            <Select
+              value={destination}
+              onChange={(v) => setDestination(v)}
+              options={DESTINATIONS}
+            />
+          </div>
         </div>
 
         <div className="mt-6">
