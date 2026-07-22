@@ -13,6 +13,10 @@ import { uploadImageToAws } from '../lib/export/awsClient';
 import { uploadImageToBraze } from '../lib/export/brazeClient';
 import { exportFolder, exportAssetPath } from '../lib/export/awsPath';
 import { runVersionExport, type ExportVersion } from '../lib/export/versionExport';
+import { useStudio } from '../lib/useStudio';
+import { GradientPicker } from './studio/controls';
+import { LibraryModal } from './shells/LibraryModal';
+import type { LibraryView } from '../lib/libraryView';
 
 type Destination = 'aws' | 'air' | 'braze';
 const DESTINATIONS: { value: Destination; label: string }[] = [
@@ -54,6 +58,11 @@ async function fetchCountryPhotos(country: string, capital: string): Promise<Raw
 
 export function BulkExport({ userEmail }: { userEmail?: string | null }) {
   const provider = useMemo(() => new YouVersionInternalProvider(), []);
+  // Studio drives shared background selection (gradient/color/upload/YouVersion/Unsplash),
+  // reusing the exact sources from the single-asset generator.
+  const studio = useStudio();
+  const [libOpen, setLibOpen] = useState(false);
+  const [libView, setLibView] = useState<LibraryView>('unsplash');
   const [logoStyle, setLogoStyle] = useState<LogoStyle>('logo-light');
   const [aspect, setAspect] = useState<AspectRatio>('1:1');
   const [destination, setDestination] = useState<Destination>('aws');
@@ -131,7 +140,11 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
           aspect,
           dimensions: ASPECT_DIMENSIONS[aspect],
           logoStyle,
-          gradientId: 'ocean',
+          // Shared background from the studio picker (image wins over gradient).
+          imageFile: studio.imageFile,
+          imageUrl: studio.sharedBg?.kind === 'image' ? studio.sharedBg.url : null,
+          gradientId: studio.gradientId,
+          gradientHex: studio.customColor,
           concurrency: 8,
           onProgress: setProgress,
           onError: (versionId, err) => {
@@ -263,6 +276,40 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
           </div>
         </div>
 
+        <div className="mt-6">
+          <FieldLabel>Background</FieldLabel>
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setLibView('unsplash');
+                setLibOpen(true);
+              }}
+            >
+              Browse images — YouVersion · Unsplash · Saved · Upload
+            </Button>
+            {(studio.imageFile || studio.sharedBg?.kind === 'image') && (
+              <span className="flex items-center gap-2 text-[13px] text-ink">
+                {studio.imageFile ? 'Uploaded image selected' : 'Library image selected'}
+                <button
+                  type="button"
+                  className="text-faint underline"
+                  onClick={() => {
+                    studio.setImageFile(null);
+                    studio.clearSharedBg();
+                  }}
+                >
+                  clear
+                </button>
+              </span>
+            )}
+          </div>
+          <GradientPicker studio={studio} />
+          <p className="mt-1 text-[12px] text-faint">
+            A chosen image applies to every version; otherwise the gradient/color is used.
+          </p>
+        </div>
+
         <div className="mt-6 max-w-xs">
           <FieldLabel>Destination</FieldLabel>
           <Select
@@ -322,6 +369,13 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
         )}
         {error && <p className="mt-4 text-[13px] text-brand">{error}</p>}
       </div>
+      <LibraryModal
+        studio={studio}
+        open={libOpen}
+        view={libView}
+        setView={setLibView}
+        onClose={() => setLibOpen(false)}
+      />
     </SpaceShell>
   );
 }

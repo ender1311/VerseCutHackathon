@@ -24,6 +24,8 @@ export interface VersionExportOptions {
   gradientId?: string | null;
   gradientHex?: string | null;
   imageUrl?: string | null;
+  /** Shared uploaded background image applied to every version. */
+  imageFile?: File | null;
   concurrency?: number;
   isDone?: (versionId: string) => boolean;
   onProgress?: (p: { done: number; total: number; failed: number }) => void;
@@ -51,7 +53,7 @@ async function exportOne(
     passage,
     aspect: opts.aspect,
     dimensions: opts.dimensions,
-    imageFile: null,
+    imageFile: opts.imageFile ?? null,
     videoFile: null,
     imageUrl: opts.imageUrl ?? null,
     mimeType: 'image/jpeg',
