@@ -321,8 +321,10 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
             : (blob: Blob, fileName: string) =>
                 uploadImageToAir(blob, exportAssetPath(dateStr, reference, idFromFile(fileName), 'jpg'));
 
-      // Braze media API is rate-limited (100/hr); keep its burst small.
-      const concurrency = destination === 'braze' ? 2 : 8;
+      // Keep bursts within each destination's limits: Braze media API is
+      // 100/hr, AIR is 15 req/s + 10 concurrent (and each AIR upload fans out to
+      // register→PUT→cdnLinks). AWS/S3 has no such cap.
+      const concurrency = destination === 'braze' ? 2 : destination === 'air' ? 6 : 8;
       const failures: string[] = [];
 
       const result = await runVersionExport(
@@ -522,7 +524,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
               value={exportType}
               onChange={(v) => setExportType(v)}
               options={[
-                { value: 'versions', label: 'Version assets' },
+                { value: 'versions', label: 'Language backgrounds' },
                 { value: 'geo', label: 'Geo backgrounds' },
               ]}
             />

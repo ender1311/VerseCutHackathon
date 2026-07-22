@@ -23,7 +23,17 @@ function airHeaders(env: AirEnv): Record<string, string> {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** POST that polls through 404 (asset version not yet ready) with capped backoff. */
+// Statuses that mean "retry shortly" for the cdnLinks POST. Right after the S3
+// PUT the asset version is often still processing, so AIR answers 404 (version
+// not registered yet) or 409 (conflict — not in a linkable state); under a busy
+// bulk run we can also hit 429 (rate limit: 15 req/s, 10 concurrent). Every
+// other status is terminal — notably 422 "CDN Links are not enabled" and auth
+// errors — so the caller can fall back immediately instead of burning the
+// whole deadline. This is why versions previously fell back to imgix: only 404
+// was retried, so a single 409/429 dropped the real CDN link.
+const CDN_RETRYABLE_STATUS = new Set([404, 409, 429]);
+
+/** POST that retries transient not-ready / rate-limited responses with capped backoff. */
 async function postWhenReady(
   fetchImpl: typeof fetch,
   url: string,
@@ -31,7 +41,8 @@ async function postWhenReady(
   body: Record<string, unknown>,
 ): Promise<Response> {
   const deadline = Date.now() + 20_000;
-  let backoff = 350;
+  // Start at 1s per AIR's guidance for 429 backoff.
+  let backoff = 1000;
   const payload = JSON.stringify(body);
   for (;;) {
     const res = await fetchImpl(url, {
@@ -39,9 +50,11 @@ async function postWhenReady(
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: payload,
     });
-    if (res.ok || res.status !== 404 || Date.now() >= deadline) return res;
+    if (res.ok || !CDN_RETRYABLE_STATUS.has(res.status) || Date.now() >= deadline) {
+      return res;
+    }
     await sleep(backoff);
-    backoff = Math.min(backoff * 1.65, 2750);
+    backoff = Math.min(backoff * 1.65, 3000);
   }
 }
 

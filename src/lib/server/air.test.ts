@@ -52,6 +52,80 @@ describe('uploadToAir', () => {
     expect(res.cdnUrl).toBe('https://air-prod.imgix.net/v9.png');
   });
 
+  it('retries the cdn link POST while the asset version is still processing (404/409)', async () => {
+    vi.useFakeTimers();
+    try {
+      let cdnCalls = 0;
+      const fetchImpl = vi.fn(async (url: string | URL) => {
+        const u = String(url);
+        if (u.endsWith('/v1/uploads')) return jsonResponse({ uploadUrl: 'https://s3/put', assetId: 'a1', versionId: 'v3' });
+        if (u === 'https://s3/put') return new Response(null, { status: 200 });
+        if (u.includes('/cdnLinks')) {
+          cdnCalls++;
+          // Not-found then conflict (still processing), then the link is minted.
+          if (cdnCalls === 1) return jsonResponse({}, 404);
+          if (cdnCalls === 2) return jsonResponse({}, 409);
+          return jsonResponse({ url: 'https://cdn.air/v3.jpg' });
+        }
+        return jsonResponse({}, 404);
+      }) as unknown as typeof fetch;
+
+      const p = uploadToAir(new Uint8Array([1]), { fileName: 'v3.jpg', mime: 'image/jpeg', env: ENV, fetchImpl });
+      await vi.runAllTimersAsync();
+      const res = await p;
+      expect(res.cdnUrl).toBe('https://cdn.air/v3.jpg');
+      expect(cdnCalls).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('retries the cdn link POST when rate limited (429)', async () => {
+    vi.useFakeTimers();
+    try {
+      let cdnCalls = 0;
+      const fetchImpl = vi.fn(async (url: string | URL) => {
+        const u = String(url);
+        if (u.endsWith('/v1/uploads')) return jsonResponse({ uploadUrl: 'https://s3/put', assetId: 'a1', versionId: 'v4' });
+        if (u === 'https://s3/put') return new Response(null, { status: 200 });
+        if (u.includes('/cdnLinks')) {
+          cdnCalls++;
+          return cdnCalls === 1
+            ? jsonResponse({ message: 'Too Many Requests' }, 429)
+            : jsonResponse({ url: 'https://cdn.air/v4.jpg' });
+        }
+        return jsonResponse({}, 404);
+      }) as unknown as typeof fetch;
+
+      const p = uploadToAir(new Uint8Array([1]), { fileName: 'v4.jpg', mime: 'image/jpeg', env: ENV, fetchImpl });
+      await vi.runAllTimersAsync();
+      const res = await p;
+      expect(res.cdnUrl).toBe('https://cdn.air/v4.jpg');
+      expect(cdnCalls).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not retry cdn links when the feature is disabled (422) — falls back immediately', async () => {
+    let cdnCalls = 0;
+    const fetchImpl = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.endsWith('/v1/uploads')) return jsonResponse({ uploadUrl: 'https://s3/put', assetId: 'a1', versionId: 'v5' });
+      if (u === 'https://s3/put') return new Response(null, { status: 200 });
+      if (u.includes('/cdnLinks')) {
+        cdnCalls++;
+        return jsonResponse({ error: 'CDN Links are not enabled' }, 422);
+      }
+      if (u.includes('/versions/')) return jsonResponse({ urls: { preview: 'https://prev/v5.jpg' } });
+      return jsonResponse({}, 404);
+    }) as unknown as typeof fetch;
+
+    const res = await uploadToAir(new Uint8Array([1]), { fileName: 'v5.jpg', mime: 'image/jpeg', env: ENV, fetchImpl });
+    expect(res.cdnUrl).toBe('https://prev/v5.jpg');
+    expect(cdnCalls).toBe(1); // 422 is terminal — no retry loop
+  });
+
   it('polls the version until urls populate when cdn links are disabled', async () => {
     let versionCalls = 0;
     const fetchImpl = vi.fn(async (url: string | URL) => {

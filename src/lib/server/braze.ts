@@ -12,6 +12,20 @@ export function getBrazeEnv(): BrazeEnv | null {
   };
 }
 
+const MIME_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+};
+
+/** Ensure the upload filename carries an extension Braze can read (from MIME). */
+export function fileNameFor(name: string, mime: string): string {
+  const base = name.split('/').pop() ?? name;
+  if (/\.[a-z0-9]+$/i.test(base)) return name; // already has an extension
+  return `${name}.${MIME_EXT[mime] ?? 'jpg'}`;
+}
+
 interface BrazeCreateResponse {
   new_assets?: { name?: string; url?: string; ext?: string; size?: number }[];
   errors?: unknown[];
@@ -34,7 +48,11 @@ export async function uploadToBraze(
   new Uint8Array(ab).set(bytes);
   const form = new FormData();
   form.append('name', opts.name);
-  form.append('asset_file', new Blob([ab], { type: opts.mime }), opts.name);
+  // Braze infers the media type from the asset_file filename's extension, not
+  // the blob's MIME type — without one it rejects the upload with
+  // 400 "unsupported file type". Callers (the bulk export) pass names with no
+  // extension, so derive and append one here.
+  form.append('asset_file', new Blob([ab], { type: opts.mime }), fileNameFor(opts.name, opts.mime));
 
   const res = await fetchImpl(`${opts.env.restEndpoint}/media_library/create`, {
     method: 'POST',
