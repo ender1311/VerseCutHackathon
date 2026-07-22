@@ -660,6 +660,13 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
               onChange={(v) => setDestination(v)}
               options={DESTINATIONS}
             />
+            {destination === 'air' && (
+              <p className="mt-2 text-[12px] leading-snug text-brand">
+                Heads up: CDN Links aren’t enabled on the AIR workspace, so links fall back to
+                imgix preview URLs that 404 for a few seconds while each asset processes. Use
+                AWS S3 or Braze for stable links, or enable CDN Links in AIR.
+              </p>
+            )}
           </div>
         </div>
 
