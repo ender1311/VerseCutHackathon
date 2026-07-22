@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SpaceShell } from './SpaceShell';
 import { Button, FieldLabel, Select, SearchableSelect, Stepper } from './ui';
 import { ASPECT_DIMENSIONS, type AspectRatio } from '../config';
@@ -31,6 +31,10 @@ import type { VersionExportRow } from '../lib/export/types';
 import { buildVersionsCsv, buildGeoByCountryCsv, buildGeoByLanguageCsv } from '../lib/export/csv';
 import { LANGUAGE_COUNTRY } from '../lib/export/languageCountry';
 import { planGeoQueries, buildGeoResults, type RawGeoPhoto } from '../lib/export/geoBackgrounds';
+import { loadBulkExportPrefs, saveBulkExportPrefs } from '../lib/export/bulkExportPrefs';
+
+// English NIV — used for the live preview render.
+const PREVIEW_VERSION = '111';
 
 // Populate the book dropdown from a widely-available version (NIV).
 const BOOK_LIST_VERSION = '111';
@@ -122,6 +126,9 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [failReasons, setFailReasons] = useState<string[]>([]);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const prefsLoaded = useRef(false);
 
   useEffect(() => {
     provider
@@ -130,8 +137,152 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
       .catch(() => setBooks([]));
   }, [provider]);
 
+  // Restore this user's last-used settings once on mount.
+  useEffect(() => {
+    const p = loadBulkExportPrefs(userEmail);
+    if (p) {
+      if (p.bookId) setBookId(p.bookId);
+      if (typeof p.chapter === 'number') setChapter(p.chapter);
+      if (typeof p.fromVerse === 'number') setFromVerse(p.fromVerse);
+      if (typeof p.toVerse === 'number') setToVerse(p.toVerse);
+      if (p.logoStyle) setLogoStyle(p.logoStyle as LogoStyle);
+      if (p.aspect) setAspect(p.aspect as AspectRatio);
+      if (typeof p.limit === 'number') setLimit(p.limit);
+      if (p.destination) setDestination(p.destination as Destination);
+      if (p.exportType === 'versions' || p.exportType === 'geo') setExportType(p.exportType);
+      if (p.gradientId) studio.setGradientId(p.gradientId);
+      if (p.customColor) studio.setCustomColor(p.customColor);
+    }
+    prefsLoaded.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userEmail]);
+
+  // Persist settings per user whenever they change (after the initial restore).
+  useEffect(() => {
+    if (!prefsLoaded.current) return;
+    saveBulkExportPrefs(userEmail, {
+      bookId,
+      chapter,
+      fromVerse,
+      toVerse,
+      logoStyle,
+      aspect,
+      limit,
+      destination,
+      exportType,
+      gradientId: studio.gradientId,
+      customColor: studio.customColor,
+    });
+  }, [
+    userEmail,
+    bookId,
+    chapter,
+    fromVerse,
+    toVerse,
+    logoStyle,
+    aspect,
+    limit,
+    destination,
+    exportType,
+    studio.gradientId,
+    studio.customColor,
+  ]);
+
   const currentBook = books.find((b) => b.id === bookId);
   const maxChapter = currentBook?.chapters ?? 150;
+
+  // Resolve the shared background (decoded image + light/dark theme) once.
+  async function resolveSharedBackground(): Promise<{
+    backgroundImage: CanvasImageSource | null;
+    dark: boolean;
+  }> {
+    let backgroundImage: CanvasImageSource | null = null;
+    const sharedUrl = studio.sharedBg?.kind === 'image' ? studio.sharedBg.url : null;
+    if (studio.imageFile) {
+      const u = URL.createObjectURL(studio.imageFile);
+      try {
+        backgroundImage = await decodeImage(u);
+      } finally {
+        URL.revokeObjectURL(u);
+      }
+    } else if (sharedUrl) {
+      backgroundImage = await decodeImage(sharedUrl).catch(() => null);
+    }
+    const bg: Background = backgroundImage
+      ? { type: 'image', image: backgroundImage }
+      : {
+          type: 'gradient',
+          preset: studio.customColor ? gradientFromHex(studio.customColor) : resolveGradient(studio.gradientId),
+        };
+    return { backgroundImage, dark: isDarkBackground(bg) };
+  }
+
+  // Live English (NIV) preview of the final output, debounced on settings changes.
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        setPreviewLoading(true);
+        const passage = await provider.fetchPassage({
+          versionId: PREVIEW_VERSION,
+          bookId,
+          chapter,
+          fromVerse,
+          toVerse,
+        });
+        const { backgroundImage, dark } = await resolveSharedBackground();
+        const base = ASPECT_DIMENSIONS[aspect];
+        const scale = Math.min(1, 640 / base.width);
+        const asset = await renderImage({
+          passage,
+          aspect,
+          dimensions: { width: Math.round(base.width * scale), height: Math.round(base.height * scale) },
+          imageFile: null,
+          videoFile: null,
+          backgroundImage,
+          dark,
+          gradientId: studio.gradientId,
+          gradientHex: studio.customColor,
+          mimeType: 'image/jpeg',
+          languageId: 'en',
+          logoStyle,
+          template: 'classic',
+        });
+        if (cancelled) {
+          URL.revokeObjectURL(asset.url);
+          return;
+        }
+        setPreviewUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return asset.url;
+        });
+      } catch {
+        /* preview is best-effort */
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    provider,
+    bookId,
+    chapter,
+    fromVerse,
+    toVerse,
+    logoStyle,
+    aspect,
+    studio.imageFile,
+    studio.sharedBg,
+    studio.gradientId,
+    studio.customColor,
+  ]);
+
+  // Revoke the last preview URL on unmount.
+  useEffect(() => () => setPreviewUrl((u) => (u ? (URL.revokeObjectURL(u), null) : null)), []);
 
   async function runVersions() {
     setRunning(true);
@@ -153,25 +304,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
 
       // Decode the shared background + compute the light/dark theme ONCE for the
       // whole run, instead of per version.
-      let backgroundImage: CanvasImageSource | null = null;
-      const sharedUrl = studio.sharedBg?.kind === 'image' ? studio.sharedBg.url : null;
-      if (studio.imageFile) {
-        const u = URL.createObjectURL(studio.imageFile);
-        try {
-          backgroundImage = await decodeImage(u);
-        } finally {
-          URL.revokeObjectURL(u);
-        }
-      } else if (sharedUrl) {
-        backgroundImage = await decodeImage(sharedUrl).catch(() => null);
-      }
-      const bg: Background = backgroundImage
-        ? { type: 'image', image: backgroundImage }
-        : {
-            type: 'gradient',
-            preset: studio.customColor ? gradientFromHex(studio.customColor) : resolveGradient(studio.gradientId),
-          };
-      const dark = isDarkBackground(bg);
+      const { backgroundImage, dark } = await resolveSharedBackground();
 
       // Organize each run into a dated, verse-named folder across destinations,
       // e.g. versecut/2026-07-21/jhn3_16/<versionId>.jpg
@@ -267,15 +400,17 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
 
   return (
     <SpaceShell userEmail={userEmail}>
-      <div className="mx-auto max-w-2xl p-8">
+      <div className="mx-auto max-w-6xl p-5 sm:p-8">
         <h1 className="text-2xl font-extrabold text-ink">Bulk Export</h1>
-        <p className="mt-2 text-[14px] text-muted">
-          Render a branded asset for every Bible version of the selected verse, upload each to AIR,
-          and download the CSVs. Geo backgrounds are a separate download.
+        <p className="mt-2 max-w-2xl text-[14px] text-muted">
+          Render a branded asset for every Bible version of the selected verse, upload each to your
+          chosen destination, and download the CSVs. Geo backgrounds are a separate download.
         </p>
 
-        <div className="mt-6">
-          <FieldLabel>Verse reference</FieldLabel>
+        <div className="mt-6 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="min-w-0">
+            <div>
+              <FieldLabel>Verse reference</FieldLabel>
           <SearchableSelect
             value={bookId}
             onChange={(v) => {
@@ -309,7 +444,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-3 gap-4">
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <FieldLabel>Logo style</FieldLabel>
             <Select
@@ -356,7 +491,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
                 setLibOpen(true);
               }}
             >
-              Browse images — YouVersion · Unsplash · Saved · Upload
+              Browse image library
             </Button>
             {(studio.imageFile || studio.sharedBg?.kind === 'image') && (
               <span className="flex items-center gap-2 text-[13px] text-ink">
@@ -380,7 +515,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
           </p>
         </div>
 
-        <div className="mt-6 grid max-w-lg grid-cols-2 gap-4">
+        <div className="mt-6 grid max-w-lg grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <FieldLabel>Export</FieldLabel>
             <Select
@@ -464,7 +599,27 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
             </button>
           </div>
         )}
-        {error && <p className="mt-4 text-[13px] text-brand">{error}</p>}
+            {error && <p className="mt-4 text-[13px] text-brand">{error}</p>}
+          </div>
+
+          {/* Live preview of the final output (English NIV), mirroring the ad layout. */}
+          <div className="lg:sticky lg:top-6">
+            <FieldLabel>Preview · English (NIV)</FieldLabel>
+            <div className="mt-2 overflow-hidden rounded-2xl border border-line bg-panel">
+              {previewUrl ? (
+                <img src={previewUrl} alt="English preview" className="block w-full" />
+              ) : (
+                <div className="flex aspect-square items-center justify-center text-[13px] text-faint">
+                  {previewLoading ? 'Rendering…' : 'Preview will appear here'}
+                </div>
+              )}
+            </div>
+            <p className="mt-2 text-[12px] text-faint">
+              Shows how each version will look with the current verse, logo, aspect, and background.
+              {previewLoading && previewUrl ? ' Updating…' : ''}
+            </p>
+          </div>
+        </div>
       </div>
       <LibraryModal
         studio={studio}
