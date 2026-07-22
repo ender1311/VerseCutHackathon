@@ -39,6 +39,16 @@ export interface RenderInput {
   gradientId?: string | null;
   /** Custom background color (hex). Takes precedence over gradientId. */
   gradientHex?: string | null;
+  /**
+   * Pre-decoded shared background image (bulk export). When set, it's used as
+   * the image background directly, avoiding a per-render decode of the same file.
+   */
+  backgroundImage?: CanvasImageSource | null;
+  /**
+   * Pre-computed light/dark theme (bulk export). When set, skips the per-render
+   * luminance sample. Undefined → compute from the background.
+   */
+  dark?: boolean;
 }
 
 /**
@@ -100,6 +110,9 @@ function loadVideoFromSrc(src: string): Promise<HTMLVideoElement> {
 async function buildBackground(
   input: RenderInput,
 ): Promise<{ background: Background; cleanup: () => void }> {
+  if (input.backgroundImage) {
+    return { background: { type: 'image', image: input.backgroundImage }, cleanup: () => {} };
+  }
   if (input.imageFile) {
     const url = URL.createObjectURL(input.imageFile);
     const image = await loadImage(url);
@@ -134,7 +147,10 @@ export async function renderImage(input: RenderInput): Promise<RenderedAsset> {
   await ensureFontsReady();
   const verseFont = await loadVerseFont(input.passage.text, input.languageId);
   const { background, cleanup } = await buildBackground(input);
-  const dark = input.template === 'promo' ? false : isDarkBackground(background);
+  const dark =
+    input.template === 'promo'
+      ? false
+      : (input.dark ?? isDarkBackground(background));
   const logo = await loadImage(
     resolveLogoPath(input.languageId, chooseLogoStyle(input, dark)),
   ).catch(() => null);
@@ -446,7 +462,10 @@ export async function renderVideo(
 ): Promise<RenderedAsset> {
   await ensureFontsReady();
   const { background, cleanup } = await buildBackground(input);
-  const dark = input.template === 'promo' ? false : isDarkBackground(background);
+  const dark =
+    input.template === 'promo'
+      ? false
+      : (input.dark ?? isDarkBackground(background));
   const logo = await loadImage(
     resolveLogoPath(input.languageId, chooseLogoStyle(input, dark)),
   ).catch(

@@ -17,4 +17,10 @@ describe('isSafeGeoPhoto', () => {
     expect(isSafeGeoPhoto({ description: 'street protest against the election' })).toBe(false);
     expect(isSafeGeoPhoto({ description: 'soldiers with weapons at war' })).toBe(false);
   });
+  it('matches whole words only (no substring false positives)', () => {
+    expect(isSafeGeoPhoto({ description: 'Warsaw skyline' })).toBe(true); // 'war' in Warsaw
+    expect(isSafeGeoPhoto({ description: 'a busy crossing in the city' })).toBe(true); // 'cross'
+    expect(isSafeGeoPhoto({ description: 'Temple Bar district, Dublin' })).toBe(false); // 'temple' is still a word
+    expect(isSafeGeoPhoto({ description: 'war memorial' })).toBe(false);
+  });
 });

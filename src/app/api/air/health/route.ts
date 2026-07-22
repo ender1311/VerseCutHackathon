@@ -5,12 +5,10 @@ import { getBrazeEnv } from '@/lib/server/braze';
 // Public, no-secret diagnostic: reports whether each upload destination has
 // credentials present in the running environment (no secret values exposed).
 export function GET() {
-  const air = getAirEnv();
-  const aws = getAwsEnv();
-  const braze = getBrazeEnv();
+  // Booleans only — no bucket/endpoint/region values on this public endpoint.
   return Response.json({
-    air: { configured: !!air, baseUrl: air?.baseUrl ?? null },
-    aws: { configured: !!aws, bucket: aws?.bucket ?? null, region: aws?.region ?? null },
-    braze: { configured: !!braze, restEndpoint: braze?.restEndpoint ?? null },
+    air: { configured: !!getAirEnv() },
+    aws: { configured: !!getAwsEnv() },
+    braze: { configured: !!getBrazeEnv() },
   });
 }

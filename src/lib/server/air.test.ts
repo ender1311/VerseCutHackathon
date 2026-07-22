@@ -48,7 +48,8 @@ describe('uploadToAir', () => {
     }) as unknown as typeof fetch;
 
     const res = await uploadToAir(new Uint8Array([1]), { fileName: 'v9.png', mime: 'image/png', env: ENV, fetchImpl });
-    expect(res.cdnUrl).toBe('https://air-prod.imgix.net/v9.jpg');
+    // Fallback extension is derived from the mime type.
+    expect(res.cdnUrl).toBe('https://air-prod.imgix.net/v9.png');
   });
 
   it('polls the version until urls populate when cdn links are disabled', async () => {

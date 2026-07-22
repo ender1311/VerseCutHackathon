@@ -1,4 +1,7 @@
 import { getAirEnv, uploadToAir } from '@/lib/server/air';
+import { validateUploadFile } from '@/lib/server/uploadGuards';
+
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const env = getAirEnv();
@@ -8,15 +11,15 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const file = form.get('file');
-  if (!(file instanceof File)) {
-    return Response.json({ error: 'file field is required' }, { status: 400 });
-  }
+  const v = validateUploadFile(file);
+  if (!v.ok) return Response.json({ error: v.error }, { status: v.status });
+  const f = file as File;
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  const bytes = new Uint8Array(await f.arrayBuffer());
   try {
     const { cdnUrl } = await uploadToAir(bytes, {
-      fileName: file.name || 'asset.png',
-      mime: file.type || 'image/png',
+      fileName: f.name || 'asset.png',
+      mime: f.type || 'image/png',
       env,
     });
     return Response.json({ data: { cdnUrl } });
