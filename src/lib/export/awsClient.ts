@@ -2,7 +2,11 @@ import { postUpload } from './uploadClient';
 
 /** Upload an image blob to S3 via the server proxy; returns the public URL.
  *  Transient gateway/network failures are retried (see postUpload). */
-export async function uploadImageToAws(blob: Blob, key: string): Promise<string> {
+export async function uploadImageToAws(
+  blob: Blob,
+  key: string,
+  shouldStop?: () => boolean,
+): Promise<string> {
   return postUpload(
     '/api/aws/upload',
     () => {
@@ -12,6 +16,6 @@ export async function uploadImageToAws(blob: Blob, key: string): Promise<string>
       return form;
     },
     (data) => (data as { url?: string } | undefined)?.url,
-    { label: 'AWS upload' },
+    { label: 'AWS upload', shouldStop },
   );
 }

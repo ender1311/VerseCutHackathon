@@ -13,7 +13,11 @@ const pace = async () => {
 };
 
 /** Upload an image blob to the Braze media library via the server proxy. */
-export async function uploadImageToBraze(blob: Blob, name: string): Promise<string> {
+export async function uploadImageToBraze(
+  blob: Blob,
+  name: string,
+  shouldStop?: () => boolean,
+): Promise<string> {
   return postUpload(
     '/api/braze/upload',
     () => {
@@ -23,6 +27,6 @@ export async function uploadImageToBraze(blob: Blob, name: string): Promise<stri
       return form;
     },
     (data) => (data as { url?: string } | undefined)?.url,
-    { label: 'Braze upload', pace, maxAttempts: 6 },
+    { label: 'Braze upload', pace, maxAttempts: 6, shouldStop },
   );
 }

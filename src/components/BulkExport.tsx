@@ -329,15 +329,16 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
       const dateStr = new Date().toLocaleDateString('en-CA');
       const folder = exportFolder(dateStr, reference);
       const idFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
+      const stop = () => stopRef.current;
       const uploadImage =
         destination === 'aws'
           ? (blob: Blob, fileName: string) =>
-              uploadImageToAws(blob, exportAssetPath(dateStr, reference, idFromFile(fileName), 'jpg'))
+              uploadImageToAws(blob, exportAssetPath(dateStr, reference, idFromFile(fileName), 'jpg'), stop)
           : destination === 'braze'
             ? (blob: Blob, fileName: string) =>
-                uploadImageToBraze(blob, `${folder}/${idFromFile(fileName)}`)
+                uploadImageToBraze(blob, `${folder}/${idFromFile(fileName)}`, stop)
             : (blob: Blob, fileName: string) =>
-                uploadImageToAir(blob, exportAssetPath(dateStr, reference, idFromFile(fileName), 'jpg'));
+                uploadImageToAir(blob, exportAssetPath(dateStr, reference, idFromFile(fileName), 'jpg'), stop);
 
       // Keep bursts within each destination's limits: Braze media API is
       // 100/hr, AIR is 15 req/s + 10 concurrent (and each AIR upload fans out to
@@ -441,7 +442,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
       // Phase 2 — render the verse in each language over its country's top photo
       // (correct language text + localized logo) and upload the localized image.
       const dateStr = new Date().toLocaleDateString('en-CA');
-      const uploadGeo = geoUploaderFor(destination, dateStr);
+      const uploadGeo = geoUploaderFor(destination, dateStr, () => stopRef.current);
       // Decode + theme each country's top photo once, shared across its languages.
       const bgCache = new Map<string, Promise<{ image: CanvasImageSource; dark: boolean }>>();
       const bgForCountry = (country: string, url: string) => {

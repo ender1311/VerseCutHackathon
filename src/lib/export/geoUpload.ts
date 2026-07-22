@@ -26,8 +26,10 @@ export function geoUploadName(
 export function geoUploaderFor(
   dest: ExportDestination,
   dateStr: string,
+  shouldStop?: () => boolean,
 ): (blob: Blob, country: string, langCode: string) => Promise<string> {
   const upload =
     dest === 'aws' ? uploadImageToAws : dest === 'braze' ? uploadImageToBraze : uploadImageToAir;
-  return (blob, country, langCode) => upload(blob, geoUploadName(dest, dateStr, country, langCode));
+  return (blob, country, langCode) =>
+    upload(blob, geoUploadName(dest, dateStr, country, langCode), shouldStop);
 }
