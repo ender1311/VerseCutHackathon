@@ -14,6 +14,7 @@ import { uploadImageToAir } from '../lib/export/airClient';
 import { uploadImageToAws } from '../lib/export/awsClient';
 import { uploadImageToBraze } from '../lib/export/brazeClient';
 import { exportFolder, exportAssetPath } from '../lib/export/awsPath';
+import { geoUploaderFor, imageUrlToJpegBlob } from '../lib/export/geoUpload';
 import { runVersionExport, type ExportVersion } from '../lib/export/versionExport';
 import { useStudio } from '../lib/useStudio';
 import { GradientPicker } from './studio/controls';
@@ -385,6 +386,34 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
         setProgress({ done: ++doneC, total: entries.length, failed: 0 });
       });
       const results = buildGeoResults(languages, photosByCountry, { maxImages: 3 });
+
+      // Upload every geo photo to the chosen destination so the CSV carries a
+      // stable CDN link, not just the Unsplash URL. Attribution (image_urls +
+      // unsplash_credits) is preserved alongside per Unsplash's guidelines.
+      const dateStr = new Date().toLocaleDateString('en-CA');
+      const uploadGeo = geoUploaderFor(destination, dateStr);
+      const tasks = results.flatMap((g) => g.images.map((img, index) => ({ g, img, index })));
+      // Same per-destination limits as the version export (Braze 100/hr; AIR
+      // 15 req/s + 10 concurrent; AWS/S3 uncapped).
+      const geoConcurrency = destination === 'braze' ? 2 : destination === 'air' ? 6 : 8;
+      const geoFailures: string[] = []; // display-capped sample of reasons
+      let failedCount = 0; // true failure total (the reasons list is capped at 20)
+      let doneU = 0;
+      await mapPool(tasks, geoConcurrency, async ({ g, img, index }) => {
+        try {
+          const blob = await imageUrlToJpegBlob(img.url);
+          img.cdnUrl = await uploadGeo(blob, g.country, index);
+        } catch (err) {
+          failedCount++;
+          const m = err instanceof Error ? err.message : String(err);
+          console.warn(`[geo-export] ${g.country} #${index + 1} failed:`, m);
+          if (geoFailures.length < 20) geoFailures.push(`${g.country} #${index + 1}: ${m}`);
+        } finally {
+          setProgress({ done: ++doneU, total: tasks.length, failed: failedCount });
+        }
+      });
+      setFailReasons(geoFailures);
+
       const byCountry = buildGeoByCountryCsv(results);
       const byLanguage = buildGeoByLanguageCsv(results);
       setGeoReady({ byCountry, byLanguage });
@@ -529,16 +558,14 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
               ]}
             />
           </div>
-          {exportType === 'versions' && (
-            <div>
-              <FieldLabel>Destination</FieldLabel>
-              <Select
-                value={destination}
-                onChange={(v) => setDestination(v)}
-                options={DESTINATIONS}
-              />
-            </div>
-          )}
+          <div>
+            <FieldLabel>Destination</FieldLabel>
+            <Select
+              value={destination}
+              onChange={(v) => setDestination(v)}
+              options={DESTINATIONS}
+            />
+          </div>
         </div>
 
         <div className="mt-6">

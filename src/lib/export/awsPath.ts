@@ -32,6 +32,23 @@ export function exportAssetPath(
   return `${exportFolder(dateStr, ref)}/${versionId}.${ext}`;
 }
 
+/** Filesystem-safe slug for a country name, e.g. "South Africa" -> "south-africa". */
+export function countrySlug(country: string): string {
+  return country
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Object key/path for one geo background photo, e.g.
+ * "versecut/2026-07-22/geo/south-africa_0.jpg". Kept in the `versecut/<date>/`
+ * shape so it passes the export-key guard shared with the version export.
+ */
+export function geoAssetPath(dateStr: string, country: string, index: number, ext = 'jpg'): string {
+  return `versecut/${dateStr}/geo/${countrySlug(country)}_${index}.${ext}`;
+}
+
 /** Public URL for an object. Uses `base` (e.g. a CloudFront domain) when set, else the S3 path style. */
 export function publicS3Url(bucket: string, key: string, base?: string | null): string {
   if (base) return `${base.replace(/\/$/, '')}/${key}`;
