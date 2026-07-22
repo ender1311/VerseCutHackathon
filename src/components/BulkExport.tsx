@@ -394,7 +394,7 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
       const manifest = await loadBibleManifest();
       // Languages mapped to a country, each with a version to source verse text.
       type GeoLang = { code: string; name: string; country: string; versionId: string };
-      const geoLangs: GeoLang[] = manifest.languages
+      const allGeoLangs: GeoLang[] = manifest.languages
         .filter((l) => LANGUAGE_COUNTRY[l.code])
         .map((l) => ({
           code: l.code,
@@ -403,8 +403,17 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
           versionId: manifest.versionsByTag[l.tag]?.[0]?.id,
         }))
         .filter((l): l is GeoLang => Boolean(l.versionId));
+      // Honor the same "Limit (0 = all)" stepper as the version export: prioritize
+      // major languages, then keep the first N (one localized image per language).
+      const byCode = new Map(allGeoLangs.map((l) => [l.code, l]));
+      const orderedGeoLangs = prioritizeVersions(
+        allGeoLangs.map((l) => ({ id: l.code, code: l.code })),
+        DEFAULT_PRIORITY_CODES,
+      ).map((o) => byCode.get(o.code)!);
+      const geoLangs = limit > 0 ? orderedGeoLangs.slice(0, limit) : orderedGeoLangs;
 
-      // Phase 1 — source landmark photos per country (kept low for Unsplash limits).
+      // Phase 1 — source landmark photos for the selected languages' countries
+      // (kept low for Unsplash limits).
       const countries = new Map<string, string>();
       for (const l of geoLangs) countries.set(l.country, LANGUAGE_COUNTRY[l.code].capital);
       const entries = [...countries.entries()];
@@ -679,7 +688,9 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
             {running
               ? 'Working…'
               : exportType === 'geo'
-                ? 'Export geo backgrounds'
+                ? limit > 0
+                  ? `Export ${limit} geo images`
+                  : 'Export all geo images'
                 : limit > 0
                   ? `Export ${limit} versions`
                   : 'Export all versions'}
