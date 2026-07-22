@@ -15,6 +15,7 @@ import { uploadImageToAws } from '../lib/export/awsClient';
 import { uploadImageToBraze } from '../lib/export/brazeClient';
 import { exportFolder, exportAssetPath } from '../lib/export/awsPath';
 import { geoUploaderFor } from '../lib/export/geoUpload';
+import { BRAZE_HOURLY_LIMIT, effectiveExportLimit } from '../lib/export/exportLimit';
 import { resolveBulkLogo } from '../lib/export/logo';
 import { runVersionExport, type ExportVersion } from '../lib/export/versionExport';
 import { useStudio } from '../lib/useStudio';
@@ -163,8 +164,12 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
       if (typeof p.toVerse === 'number') setToVerse(p.toVerse);
       if (p.logoStyle) setLogoStyle(p.logoStyle as LogoStyle);
       if (p.aspect) setAspect(p.aspect as AspectRatio);
-      if (typeof p.limit === 'number') setLimit(p.limit);
       if (p.destination) setDestination(p.destination as Destination);
+      if (typeof p.limit === 'number') {
+        // Normalize restored prefs to a sane count; Braze is capped to its quota.
+        const base = Math.max(0, Math.floor(p.limit));
+        setLimit(p.destination === 'braze' ? effectiveExportLimit('braze', base) : base);
+      }
       if (p.exportType === 'versions' || p.exportType === 'geo') setExportType(p.exportType);
       if (p.gradientId) studio.setGradientId(p.gradientId);
       if (p.customColor) studio.setCustomColor(p.customColor);
@@ -318,7 +323,8 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
         }
       }
       const ordered = prioritizeVersions(all, DEFAULT_PRIORITY_CODES);
-      const versions = limit > 0 ? ordered.slice(0, limit) : ordered;
+      const effLimit = effectiveExportLimit(destination, limit);
+      const versions = effLimit > 0 ? ordered.slice(0, effLimit) : ordered;
 
       // Decode the shared background + compute the light/dark theme ONCE for the
       // whole run, instead of per version.
@@ -411,7 +417,8 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
         allGeoLangs.map((l) => ({ id: l.code, code: l.code })),
         DEFAULT_PRIORITY_CODES,
       ).map((o) => byCode.get(o.code)!);
-      const geoLangs = limit > 0 ? orderedGeoLangs.slice(0, limit) : orderedGeoLangs;
+      const effLimit = effectiveExportLimit(destination, limit);
+      const geoLangs = effLimit > 0 ? orderedGeoLangs.slice(0, effLimit) : orderedGeoLangs;
 
       // Phase 1 — source landmark photos for the selected languages' countries
       // (kept low for Unsplash limits).
@@ -608,10 +615,10 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
           </div>
           <div>
             <Stepper
-              label="Limit (0 = all)"
+              label={destination === 'braze' ? `Limit (max ${BRAZE_HOURLY_LIMIT}/hr)` : 'Limit (0 = all)'}
               value={limit}
-              min={0}
-              max={5000}
+              min={destination === 'braze' ? 1 : 0}
+              max={destination === 'braze' ? BRAZE_HOURLY_LIMIT : 5000}
               onChange={setLimit}
             />
           </div>
@@ -667,7 +674,11 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
             <FieldLabel>Destination</FieldLabel>
             <Select
               value={destination}
-              onChange={(v) => setDestination(v)}
+              onChange={(v) => {
+                setDestination(v);
+                // Braze can't exceed its hourly quota — clamp the limit on select.
+                if (v === 'braze') setLimit((n) => effectiveExportLimit('braze', n));
+              }}
               options={DESTINATIONS}
             />
             {destination === 'air' && (
@@ -679,9 +690,9 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
             )}
             {destination === 'braze' && (
               <p className="mt-2 text-[12px] leading-snug text-brand">
-                Heads up: Braze caps media uploads at 100/hour. Uploads are paced and retried to
-                stay under it, so large runs get slow after the first ~100 — use AWS S3 for bulk,
-                and Stop when you have enough.
+                Braze caps media uploads at {BRAZE_HOURLY_LIMIT}/hour, so the limit is capped at{' '}
+                {BRAZE_HOURLY_LIMIT} for this destination (uploads are also paced + retried). For a
+                bigger batch, use AWS S3.
               </p>
             )}
           </div>
