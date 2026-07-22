@@ -5,11 +5,31 @@ export interface VerseRef {
   toVerse: number;
 }
 
-/** Deterministic S3 key for a version's rendered asset (re-runs overwrite). */
-export function s3KeyForVersion(ref: VerseRef, versionId: string, ext = 'jpg'): string {
+/** Verse slug for folder/name organization, e.g. "jhn3_16" or "1jn4_7-8". */
+export function refSlug(ref: VerseRef): string {
   const book = ref.bookId.toLowerCase().replace(/[^a-z0-9]/g, '');
   const range = ref.fromVerse === ref.toVerse ? `${ref.fromVerse}` : `${ref.fromVerse}-${ref.toVerse}`;
-  return `versecut/${book}${ref.chapter}_${range}/${versionId}.${ext}`;
+  return `${book}${ref.chapter}_${range}`;
+}
+
+/**
+ * Per-run export folder, organized by date then verse reference, e.g.
+ * "versecut/2026-07-21/jhn3_16". Used as the S3 key prefix, and as the
+ * name/title prefix for AIR and Braze so every destination groups a run's
+ * assets together.
+ */
+export function exportFolder(dateStr: string, ref: VerseRef): string {
+  return `versecut/${dateStr}/${refSlug(ref)}`;
+}
+
+/** Full object key/path for one version's asset within an export folder. */
+export function exportAssetPath(
+  dateStr: string,
+  ref: VerseRef,
+  versionId: string,
+  ext = 'jpg',
+): string {
+  return `${exportFolder(dateStr, ref)}/${versionId}.${ext}`;
 }
 
 /** Public URL for an object. Uses `base` (e.g. a CloudFront domain) when set, else the S3 path style. */

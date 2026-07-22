@@ -1,16 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { s3KeyForVersion, publicS3Url } from './awsPath';
+import { refSlug, exportFolder, exportAssetPath, publicS3Url } from './awsPath';
 
-describe('s3KeyForVersion', () => {
-  it('builds a sanitized deterministic key', () => {
-    expect(s3KeyForVersion({ bookId: 'JHN', chapter: 3, fromVerse: 16, toVerse: 16 }, '111')).toBe(
-      'versecut/jhn3_16/111.jpg',
-    );
+const JHN = { bookId: 'JHN', chapter: 3, fromVerse: 16, toVerse: 16 };
+const RANGE = { bookId: '1JN', chapter: 4, fromVerse: 7, toVerse: 8 };
+
+describe('refSlug', () => {
+  it('sanitizes book + chapter + single verse', () => {
+    expect(refSlug(JHN)).toBe('jhn3_16');
   });
   it('encodes a verse range', () => {
-    expect(s3KeyForVersion({ bookId: '1JN', chapter: 4, fromVerse: 7, toVerse: 8 }, '59')).toBe(
-      'versecut/1jn4_7-8/59.jpg',
-    );
+    expect(refSlug(RANGE)).toBe('1jn4_7-8');
+  });
+});
+
+describe('exportFolder', () => {
+  it('organizes by date then verse reference', () => {
+    expect(exportFolder('2026-07-21', JHN)).toBe('versecut/2026-07-21/jhn3_16');
+  });
+});
+
+describe('exportAssetPath', () => {
+  it('builds the per-version object path under the dated folder', () => {
+    expect(exportAssetPath('2026-07-21', JHN, '111')).toBe('versecut/2026-07-21/jhn3_16/111.jpg');
   });
 });
 

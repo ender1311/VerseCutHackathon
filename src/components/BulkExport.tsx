@@ -11,7 +11,7 @@ import type { Book } from '../lib/bible';
 import { uploadImageToAir } from '../lib/export/airClient';
 import { uploadImageToAws } from '../lib/export/awsClient';
 import { uploadImageToBraze } from '../lib/export/brazeClient';
-import { s3KeyForVersion } from '../lib/export/awsPath';
+import { exportFolder, exportAssetPath } from '../lib/export/awsPath';
 import { runVersionExport, type ExportVersion } from '../lib/export/versionExport';
 
 type Destination = 'aws' | 'air' | 'braze';
@@ -104,14 +104,20 @@ export function BulkExport({ userEmail }: { userEmail?: string | null }) {
       const ordered = prioritizeVersions(all, DEFAULT_PRIORITY_CODES);
       const versions = limit > 0 ? ordered.slice(0, limit) : ordered;
 
+      // Organize each run into a dated, verse-named folder across destinations,
+      // e.g. versecut/2026-07-21/jhn3_16/<versionId>.jpg
+      const dateStr = new Date().toLocaleDateString('en-CA');
+      const folder = exportFolder(dateStr, reference);
       const idFromFile = (fileName: string) => fileName.replace(/\.[^.]+$/, '');
       const uploadImage =
         destination === 'aws'
           ? (blob: Blob, fileName: string) =>
-              uploadImageToAws(blob, s3KeyForVersion(reference, idFromFile(fileName), 'jpg'))
+              uploadImageToAws(blob, exportAssetPath(dateStr, reference, idFromFile(fileName), 'jpg'))
           : destination === 'braze'
-            ? (blob: Blob, fileName: string) => uploadImageToBraze(blob, `versecut-${idFromFile(fileName)}`)
-            : uploadImageToAir;
+            ? (blob: Blob, fileName: string) =>
+                uploadImageToBraze(blob, `${folder}/${idFromFile(fileName)}`)
+            : (blob: Blob, fileName: string) =>
+                uploadImageToAir(blob, exportAssetPath(dateStr, reference, idFromFile(fileName), 'jpg'));
 
       const result = await runVersionExport(
         versions,
