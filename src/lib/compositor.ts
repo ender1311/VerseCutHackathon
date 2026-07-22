@@ -295,8 +295,8 @@ export function composeFrame(
   //    which would break shaping/ligatures).
   ctx.save();
   ctx.globalAlpha = easeOut(Math.min(1, Math.max(0, (t - 0.25) / 0.5)));
-  // Reference matches the verse/logo ink (light on dark, dark on light).
-  ctx.fillStyle = ink;
+  // Reference keeps the brand-red accent regardless of background.
+  ctx.fillStyle = '#fe5562';
   const refText = casedScript ? opts.reference.toUpperCase() : opts.reference;
   const label = opts.versionAbbreviation
     ? `${refText}  ·  ${opts.versionAbbreviation}`
