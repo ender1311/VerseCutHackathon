@@ -54,13 +54,18 @@ describe('geoAssetPath', () => {
 });
 
 describe('publicS3Url', () => {
-  it('uses the S3 path style by default', () => {
+  it('serves a domain-named bucket via its own CDN host (edge-cached)', () => {
     expect(publicS3Url('web-assets.youversion.com', 'versecut/x/1.jpg')).toBe(
-      'https://s3.amazonaws.com/web-assets.youversion.com/versecut/x/1.jpg',
+      'https://web-assets.youversion.com/versecut/x/1.jpg',
     );
   });
-  it('prefers a CDN base when provided', () => {
-    expect(publicS3Url('b', 'versecut/x/1.jpg', 'https://cdn.example.com/')).toBe(
+  it('falls back to the S3 path style for a non-domain bucket name', () => {
+    expect(publicS3Url('my-bucket', 'versecut/x/1.jpg')).toBe(
+      'https://s3.amazonaws.com/my-bucket/versecut/x/1.jpg',
+    );
+  });
+  it('prefers an explicit CDN base when provided', () => {
+    expect(publicS3Url('web-assets.youversion.com', 'versecut/x/1.jpg', 'https://cdn.example.com/')).toBe(
       'https://cdn.example.com/versecut/x/1.jpg',
     );
   });

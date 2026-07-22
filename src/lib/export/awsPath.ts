@@ -56,8 +56,17 @@ export function geoAssetPath(
   return `versecut/${dateStr}/geo/${countrySlug(country)}_${safe}.${ext}`;
 }
 
-/** Public URL for an object. Uses `base` (e.g. a CloudFront domain) when set, else the S3 path style. */
+/**
+ * Public URL for an object. Prefers, in order:
+ *  1. an explicit `base` (e.g. a CloudFront domain),
+ *  2. the bucket's own domain when it's named like one (e.g.
+ *     `web-assets.youversion.com` is CNAME'd to the edge cache, so
+ *     `https://web-assets.youversion.com/<key>` is the CDN URL — cached at the
+ *     edge, matching how other YouVersion assets are served),
+ *  3. the direct S3 path style as a last resort.
+ */
 export function publicS3Url(bucket: string, key: string, base?: string | null): string {
   if (base) return `${base.replace(/\/$/, '')}/${key}`;
+  if (bucket.includes('.')) return `https://${bucket}/${key}`;
   return `https://s3.amazonaws.com/${bucket}/${key}`;
 }
