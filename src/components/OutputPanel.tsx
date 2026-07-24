@@ -154,9 +154,16 @@ function StageRow({ stage }: { stage: Stage }) {
 export function OutputPanel({
   studio,
   space = 'ads',
+  hidePreview = false,
 }: {
   studio: Studio;
   space?: 'ads' | 'social';
+  /**
+   * Drop the preview frames (empty-state, in-flight, and finished) but keep the
+   * render progress and download/save controls. Used where another surface (a
+   * live-preview aside) already shows the render, so this panel is actions-only.
+   */
+  hidePreview?: boolean;
 }) {
   const { jobs, selectedJob } = studio;
   const showSafe = space === 'social' && !!studio.platform;
@@ -255,11 +262,13 @@ export function OutputPanel({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-6 pt-4 md:px-10 md:pt-7">
-        <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-faint">
-          Preview · {kindLabel} · {aspect}
-        </span>
-      </div>
+      {!hidePreview && (
+        <div className="px-6 pt-4 md:px-10 md:pt-7">
+          <span className="text-[12px] font-bold uppercase tracking-[0.18em] text-faint">
+            Preview · {kindLabel} · {aspect}
+          </span>
+        </div>
+      )}
 
       {jobs.length > 0 && (
         <div className="scroll-slim flex gap-2 overflow-x-auto px-6 pt-3 md:px-10 md:pt-4">
@@ -275,7 +284,7 @@ export function OutputPanel({
       )}
 
       <div className="flex min-h-0 flex-1 flex-col px-6 py-5 md:px-10 md:py-8">
-        {!selectedJob && (
+        {!selectedJob && !hidePreview && (
           <div className="flex h-full w-full flex-col items-center justify-center gap-5">
             {draftBg ? (
               <div className="flex min-h-0 w-full flex-1 items-center justify-center">
@@ -331,15 +340,21 @@ export function OutputPanel({
         )}
 
         {selectedJob && (selectedJob.status === 'queued' || selectedJob.status === 'running') && (
-          <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col items-center">
-            <div className="flex min-h-0 w-full flex-1 items-center justify-center">
-              <PreviewFrame aspect={aspect} safeArea={showSafe}>
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-black">
-                  <div className="h-full w-full animate-pulse-soft bg-[radial-gradient(circle_at_50%_30%,rgba(254,55,69,0.25),transparent_60%)]" />
-                </div>
-              </PreviewFrame>
-            </div>
-            <div className="mt-4 w-full max-w-xs shrink-0 rounded-2xl border border-line bg-surface p-4">
+          <div className="mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col items-center justify-center">
+            {!hidePreview && (
+              <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+                <PreviewFrame aspect={aspect} safeArea={showSafe}>
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-black">
+                    <div className="h-full w-full animate-pulse-soft bg-[radial-gradient(circle_at_50%_30%,rgba(254,55,69,0.25),transparent_60%)]" />
+                  </div>
+                </PreviewFrame>
+              </div>
+            )}
+            <div
+              className={`w-full max-w-xs shrink-0 rounded-2xl border border-line bg-surface p-4 ${
+                hidePreview ? '' : 'mt-4'
+              }`}
+            >
               {selectedJob.status === 'queued' && (
                 <p className="mb-3 text-center text-[13px] font-semibold text-muted">
                   Queued — waiting for the current render…
@@ -355,31 +370,35 @@ export function OutputPanel({
 
         {selectedJob && selectedJob.status === 'done' && asset && (
           <div
-            className={`flex min-h-0 w-full flex-1 animate-fade-up flex-col items-center ${
-              isTall ? 'md:flex-row md:items-stretch md:justify-center md:gap-8' : ''
+            className={`flex min-h-0 w-full flex-1 animate-fade-up flex-col items-center justify-center ${
+              !hidePreview && isTall ? 'md:flex-row md:items-stretch md:justify-center md:gap-8' : ''
             }`}
           >
-            <div className="flex min-h-0 w-full flex-1 items-center justify-center">
-              <PreviewFrame aspect={aspect} safeArea={showSafe} capPx={isTall ? 1200 : 720}>
-                {asset.kind === 'image' ? (
-                  <img src={asset.url} alt="Generated verse ad" className="h-full w-full object-contain" />
-                ) : (
-                  <video
-                    src={asset.url}
-                    className="h-full w-full object-contain"
-                    controls
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
-                )}
-              </PreviewFrame>
-            </div>
+            {!hidePreview && (
+              <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+                <PreviewFrame aspect={aspect} safeArea={showSafe} capPx={isTall ? 1200 : 720}>
+                  {asset.kind === 'image' ? (
+                    <img src={asset.url} alt="Generated verse ad" className="h-full w-full object-contain" />
+                  ) : (
+                    <video
+                      src={asset.url}
+                      className="h-full w-full object-contain"
+                      controls
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  )}
+                </PreviewFrame>
+              </div>
+            )}
 
             <div
-              className={`mt-4 flex w-full max-w-md shrink-0 flex-col items-center gap-3 ${
-                isTall ? 'md:mt-0 md:w-72 md:max-w-none md:items-stretch md:justify-center' : ''
+              className={`flex w-full max-w-md shrink-0 flex-col items-center gap-3 ${
+                hidePreview ? '' : 'mt-4'
+              } ${
+                !hidePreview && isTall ? 'md:mt-0 md:w-72 md:max-w-none md:items-stretch md:justify-center' : ''
               }`}
             >
               {!alreadySaved && (

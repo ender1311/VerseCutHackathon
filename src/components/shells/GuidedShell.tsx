@@ -133,9 +133,11 @@ export function GuidedShell({ studio, space, settings, onBrowse }: ShellProps) {
           {step === 3 && (
             <div className="flex min-h-0 flex-col gap-5">
               <GenerateFooter studio={studio} />
-              <div className="min-h-[420px] flex-1 rounded-2xl border border-line">
-                <OutputPanel studio={studio} space={space} />
-              </div>
+              {studio.jobs.length > 0 && (
+                <div className="rounded-2xl border border-line">
+                  <OutputPanel studio={studio} space={space} hidePreview />
+                </div>
+              )}
             </div>
           )}
 
