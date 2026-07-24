@@ -136,6 +136,7 @@ export default function App({
                   { value: 'generated', label: 'Saved' },
                   { value: 'youversion', label: 'YouVersion' },
                   { value: 'unsplash', label: 'Unsplash' },
+                  { value: 'geo', label: 'Geo' },
                   { value: 'videos', label: 'Videos' },
                 ]}
               />

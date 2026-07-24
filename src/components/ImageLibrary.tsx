@@ -11,12 +11,14 @@ import {
   trackUnsplashPhotoDownload,
 } from '../lib/unsplash/client';
 import type { UnsplashOrientation, UnsplashPhoto } from '../lib/unsplash/types';
+import { GEO_LANDMARKS, DEFAULT_GEO_LANDMARK, getGeoLandmark } from '../lib/geo/landmarks';
+import { isLandmarkPhotoSafe } from '../lib/geo/landmarkSafety';
 import { Play, Spinner, UploadCloud, XMark } from './icons';
 import { Button, Segmented, Select } from './ui';
 import { LazyVideo } from './LazyVideo';
 
 type Studio = ReturnType<typeof useStudio>;
-type LibrarySource = 'youversion' | 'unsplash';
+type LibrarySource = 'youversion' | 'unsplash' | 'geo';
 type CatFilter = 'all' | 'prerendered_bg' | 'prerendered' | 'kids';
 type OrientFilter = 'all' | 'portrait' | 'landscape';
 type LangFilter = 'all' | 'en' | 'es' | 'pt' | 'fr';
@@ -58,9 +60,18 @@ export function ImageLibrary({
   const [unsplashError, setUnsplashError] = useState<string | null>(null);
   const [unsplashTotal, setUnsplashTotal] = useState(0);
 
+  // Geo tab: selected country → its curated landmark search term.
+  const [geoCode, setGeoCode] = useState(DEFAULT_GEO_LANDMARK.code);
+
   const isYouVersion = source === 'youversion';
   const isUnsplash = source === 'unsplash';
+  const isGeo = source === 'geo';
   const canUpload = isUnsplash;
+  // Both Unsplash and Geo tabs query the Unsplash proxy; Geo forces the query to
+  // the selected landmark and filters results to Christian-friendly landmarks.
+  const usesUnsplash = isUnsplash || isGeo;
+  const landmark = getGeoLandmark(geoCode);
+  const effectiveQuery = isGeo ? landmark.term : searchQuery;
 
   useEffect(() => {
     let active = true;
@@ -82,16 +93,17 @@ export function ImageLibrary({
     return () => window.clearTimeout(t);
   }, [searchDraft, isUnsplash]);
 
-  // Live Unsplash results (empty query → curated/latest list).
+  // Live Unsplash / Geo results (empty query → curated/latest list). Geo
+  // over-fetches slightly since results are then filtered client-side.
   useEffect(() => {
-    if (!isUnsplash) return;
+    if (!usesUnsplash) return;
     let active = true;
     setUnsplashLoading(true);
     setUnsplashError(null);
     searchUnsplashPhotos({
-      query: searchQuery || undefined,
+      query: effectiveQuery || undefined,
       page: 1,
-      perPage: 24,
+      perPage: isGeo ? 30 : 24,
       orientation: unsplashOrient,
     })
       .then((result) => {
@@ -112,7 +124,7 @@ export function ImageLibrary({
     return () => {
       active = false;
     };
-  }, [isUnsplash, searchQuery, unsplashOrient]);
+  }, [usesUnsplash, isGeo, effectiveQuery, unsplashOrient]);
 
   async function onUpload(file: File) {
     setUploading(true);
@@ -179,16 +191,25 @@ export function ImageLibrary({
   // Team-library Unsplash seeds only when not actively searching.
   const teamUnsplash = isUnsplash && !searchQuery ? visible : [];
 
+  // Geo results, filtered to Christian-friendly landmark imagery.
+  const geoPhotos = isGeo
+    ? unsplashPhotos.filter((p) => isLandmarkPhotoSafe(p.description, landmark.term))
+    : [];
+
   const heading = isYouVersion
     ? 'YouVersion'
     : isUnsplash
       ? 'Unsplash'
-      : 'Videos';
+      : isGeo
+        ? 'Geo'
+        : 'Videos';
   const subtitle = isYouVersion
     ? 'Bible App verse backgrounds'
     : isUnsplash
       ? 'Search millions of free photos'
-      : 'Shared video backgrounds';
+      : isGeo
+        ? 'Famous landmarks by country'
+        : 'Shared video backgrounds';
 
   function assetCard(a: SharedAsset) {
     const active = selected?.url === a.fileUrl;
@@ -342,6 +363,26 @@ export function ImageLibrary({
         </div>
       )}
 
+      {isGeo && (
+        <div className="mb-4 flex flex-col gap-3">
+          <Select
+            value={geoCode}
+            onChange={(v) => setGeoCode(v)}
+            options={GEO_LANDMARKS.map((l) => ({ value: l.code, label: l.country }))}
+          />
+          <Segmented
+            value={unsplashOrient}
+            onChange={(v) => setUnsplashOrient(v as UnsplashOrientFilter)}
+            options={[
+              { value: 'all', label: 'All' },
+              { value: 'portrait', label: 'Portrait' },
+              { value: 'landscape', label: 'Landscape' },
+              { value: 'squarish', label: 'Square' },
+            ]}
+          />
+        </div>
+      )}
+
       {isYouVersion && (
         <div className="mb-4 flex flex-col gap-3">
           <div className="flex flex-wrap gap-3">
@@ -421,19 +462,42 @@ export function ImageLibrary({
         </>
       )}
 
-      {!isUnsplash && loading && (
+      {isGeo && (
+        <>
+          {unsplashLoading && (
+            <div className="mb-3 flex items-center gap-2 text-[14px] text-muted">
+              <Spinner className="text-muted" /> Searching…
+            </div>
+          )}
+          {!unsplashLoading && geoPhotos.length === 0 && !unsplashError && (
+            <p className="mb-3 text-[14px] text-faint">No landmark photos found.</p>
+          )}
+          {geoPhotos.length > 0 && (
+            <>
+              <p className="mb-3 text-[12px] font-medium text-faint">
+                {landmark.term} · {landmark.country}
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {geoPhotos.map(unsplashCard)}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {!usesUnsplash && loading && (
         <div className="flex items-center gap-2 text-[14px] text-muted">
           <Spinner className="text-muted" /> Loading…
         </div>
       )}
 
-      {!isUnsplash && !loading && visible.length === 0 && (
+      {!usesUnsplash && !loading && visible.length === 0 && (
         <p className="text-[14px] text-faint">
           {kind === 'video' ? 'No shared videos yet. Upload one to get started.' : 'No matching backgrounds.'}
         </p>
       )}
 
-      {!isUnsplash && visible.length > 0 && (
+      {!usesUnsplash && visible.length > 0 && (
         <>
           {isYouVersion && (
             <p className="mb-3 text-[12px] font-medium text-faint">
