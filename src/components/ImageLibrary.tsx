@@ -475,7 +475,7 @@ export function ImageLibrary({
           {geoPhotos.length > 0 && (
             <>
               <p className="mb-3 text-[12px] font-medium text-faint">
-                {landmark.term} · {landmark.country}
+                {landmark.generic ? 'A variety of world landmarks' : `${landmark.term} · ${landmark.country}`}
               </p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {geoPhotos.map(unsplashCard)}

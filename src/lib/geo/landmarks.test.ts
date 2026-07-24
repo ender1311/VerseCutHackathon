@@ -2,10 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { GEO_LANDMARKS, DEFAULT_GEO_LANDMARK, getGeoLandmark } from './landmarks';
 
 describe('geo landmarks', () => {
-  it('defaults to India / Taj Mahal', () => {
-    expect(DEFAULT_GEO_LANDMARK.country).toBe('India');
-    expect(DEFAULT_GEO_LANDMARK.term).toBe('Taj Mahal');
+  it('defaults to a generic "all landmarks" search', () => {
+    expect(DEFAULT_GEO_LANDMARK.generic).toBe(true);
+    expect(DEFAULT_GEO_LANDMARK.term).toBe('landmarks');
     expect(GEO_LANDMARKS[0]).toBe(DEFAULT_GEO_LANDMARK);
+  });
+
+  it('still offers India / Taj Mahal as a country option', () => {
+    expect(getGeoLandmark('in').term).toBe('Taj Mahal');
   });
 
   it('looks up a landmark by code', () => {

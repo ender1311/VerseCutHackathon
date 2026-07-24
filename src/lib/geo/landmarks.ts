@@ -5,11 +5,16 @@ export interface GeoLandmark {
   country: string;
   /** Unsplash search term for this country's iconic landmark. */
   term: string;
+  /** True for the "all landmarks" option — a broad mix rather than one country. */
+  generic?: boolean;
 }
 
-// Curated, instantly-recognizable landmarks per country. India is first so it
-// is the default (Taj Mahal). Terms are tuned for strong Unsplash results.
+// Curated, instantly-recognizable landmarks. The first entry is a generic "all
+// landmarks" option (the default) so the Geo tab opens on a varied worldwide
+// mix; the rest map a country to its iconic landmark. Terms are tuned for
+// strong Unsplash results.
 export const GEO_LANDMARKS: GeoLandmark[] = [
+  { code: 'all', country: 'All landmarks', term: 'landmarks', generic: true },
   { code: 'in', country: 'India', term: 'Taj Mahal' },
   { code: 'fr', country: 'France', term: 'Eiffel Tower' },
   { code: 'us', country: 'United States', term: 'Statue of Liberty' },

@@ -62,7 +62,7 @@ export const config = {
 
   /** Output presets. */
   output: {
-    defaultFormat: 'video' as 'video' | 'image',
+    defaultFormat: 'image' as 'video' | 'image',
     defaultAspect: '9:16' as '9:16' | '16:9',
     videoDurationSec: 6,
     videoFps: 30,
