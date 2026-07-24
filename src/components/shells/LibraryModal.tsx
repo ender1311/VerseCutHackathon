@@ -77,6 +77,9 @@ export function LibraryModal({
           {view === 'unsplash' && (
             <ImageLibrary studio={studio} kind="image" source="unsplash" onPicked={onClose} />
           )}
+          {view === 'geo' && (
+            <ImageLibrary studio={studio} kind="image" source="geo" onPicked={onClose} />
+          )}
           {view === 'videos' && <ImageLibrary studio={studio} kind="video" onPicked={onClose} />}
         </div>
       </div>
